@@ -415,6 +415,7 @@ void tracepoint(
  * @param worker The thread number of the worker thread or 0 for unthreaded execution.
  */
 void tracepoint_reaction_starts(reaction_t* reaction, int worker) {
+    DEBUG_PRINT("HOKEUN!!!!!!! inside tracepoint_reaction_starts");
     tracepoint(reaction_starts, reaction->self, reaction->number, worker, NULL, NULL, 0);
 }
 
@@ -476,6 +477,7 @@ void tracepoint_user_value(char* description, long long value) {
  * @param worker The thread number of the worker thread or 0 for unthreaded execution.
  */
 void tracepoint_worker_wait_starts(int worker) {
+    DEBUG_PRINT("HOKEUN!!!!!!! inside tracepoint_worker_wait_starts");
     tracepoint(worker_wait_starts, NULL, -1, worker, NULL, NULL, 0);
 }
 

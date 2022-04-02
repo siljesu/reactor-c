@@ -64,6 +64,7 @@ typedef enum {
     scheduler_advancing_time_ends
 } trace_event_t;
 
+// This has to be present (as compiler definition)
 #ifdef LINGUA_FRANCA_TRACE
 
 /**

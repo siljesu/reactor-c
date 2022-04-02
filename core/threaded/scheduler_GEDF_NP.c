@@ -308,6 +308,7 @@ reaction_t* lf_sched_get_ready_reaction(int worker_number) {
         }
 
         DEBUG_PRINT("Worker %d is out of ready reactions.", worker_number);
+        DEBUG_PRINT("HOKEUN!!!!!!! Worker %d is out of ready reactions.", worker_number);
 
         // Ask the scheduler for more work and wait
         tracepoint_worker_wait_starts(worker_number);
