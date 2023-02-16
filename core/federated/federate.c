@@ -29,7 +29,20 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Utility functions for a federate in a federated execution.
  * The main entry point is synchronize_with_other_federates().
  */
-
+#define PLATFORM_ZEPHYR
+#ifdef PLATFORM_ZEPHYR
+#include <posix/arpa/inet.h>  // inet_ntop & inet_pton 
+#include <assert.h>
+#include <errno.h>      // Defined perror(), errno
+#include <posix/netdb.h>      // Defines gethostbyname().
+#include <posix/netinet/in.h> // Defines struct sockaddr_in
+#include <posix/signal.h>     // Defines sigaction.
+#include <stdio.h>
+#include <stdlib.h>
+#include <strings.h>    // Defines bzero().
+#include <posix/sys/socket.h>
+#include <posix/unistd.h>     // Defines read(), write(), and close()
+#else
 #include <arpa/inet.h>  // inet_ntop & inet_pton
 #include <assert.h>
 #include <errno.h>      // Defined perror(), errno
@@ -42,6 +55,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <strings.h>    // Defines bzero().
 #include <sys/socket.h>
 #include <unistd.h>     // Defines read(), write(), and close()
+#endif
 
 #include "clock-sync.c"
 #include "federate.h"
