@@ -14,7 +14,7 @@ are permitted provided that the following conditions are met:
 2. Redistributions in binary form must reproduce the above copyright notice,
    this list of conditions and the following disclaimer in the documentation
    and/or other materials provided with the distribution.
-
+posix/
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
@@ -29,19 +29,21 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Utility functions for a federate in a federated execution.
  * The main entry point is synchronize_with_other_federates().
  */
-#define PLATFORM_ZEPHYR
 #ifdef PLATFORM_ZEPHYR
-#include <posix/arpa/inet.h>  // inet_ntop & inet_pton 
+
+#include <zephyr/kernel.h>
 #include <assert.h>
 #include <errno.h>      // Defined perror(), errno
-#include <posix/netdb.h>      // Defines gethostbyname().
-#include <posix/netinet/in.h> // Defines struct sockaddr_in
-#include <posix/signal.h>     // Defines sigaction.
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>    // Defines bzero().
-#include <posix/sys/socket.h>
-#include <posix/unistd.h>     // Defines read(), write(), and close()
+#include <zephyr/posix/netdb.h>      // Defines gethostbyname().
+#include <zephyr/posix/arpa/inet.h>  // inet_ntop & inet_pton 
+#include <zephyr/posix/netinet/in.h> // Defines struct sockaddr_in
+#include <zephyr/posix/signal.h>     // Defines sigaction.
+#include <zephyr/posix/sys/socket.h>
+#include <zephyr/posix/unistd.h>     // Defines read(), write(), and close()
+
 #else
 #include <arpa/inet.h>  // inet_ntop & inet_pton
 #include <assert.h>

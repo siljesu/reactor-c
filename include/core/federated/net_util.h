@@ -38,11 +38,19 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef NET_UTIL_H
 #define NET_UTIL_H
 
+#ifdef PLATFORM_ZEPHYR
+
+#include <zephyr/kernel.h>
+#include <zephyr/posix/sys/socket.h>
+#include <zephyr/types.h>
+//#include <regex.h>
+#include <stdbool.h>
+#else
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <regex.h>
 #include <stdbool.h>
-
+#endif
 #include "../platform.h"
 #include "../tag.h"
 

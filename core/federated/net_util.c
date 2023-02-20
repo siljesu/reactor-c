@@ -29,6 +29,20 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @section DESCRIPTION
  * Utility functions for a federate in a federated execution.
  */
+
+#ifdef PLATFORM_ZEPHYR
+
+#include <zephyr/kernel.h>
+#include <assert.h>
+#include <errno.h>      // Defined perror(), errno
+#include <stdio.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include <math.h>       // For sqrtl() and powl
+#include <stdarg.h>     // Defines va_list
+#include <time.h>       // Defines nanosleep()
+#include <zephyr/posix/unistd.h>     // Defines read(), write(), and close()
+#else
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
@@ -39,6 +53,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>     // Defines memcpy()
 #include <time.h>       // Defines nanosleep()
 #include <unistd.h>     // Defines read(), write(), and close()
+#endif
 
 #include "net_util.h"
 #include "util.h"

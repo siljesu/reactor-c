@@ -196,8 +196,13 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef NET_COMMON_H
 #define NET_COMMON_H
 
-#include <pthread.h>
+#ifdef PLATFORM_ZEPHYR
 
+#include <zephyr/kernel.h>
+#include <zephyr/posix/pthread.h>
+#else
+#include <pthread.h>
+#endif
 /**
  * The timeout time in ns for TCP operations.
  * Default value is 10 secs.
