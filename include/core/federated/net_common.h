@@ -197,9 +197,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define NET_COMMON_H
 
 #ifdef PLATFORM_ZEPHYR
-
 #include <zephyr/kernel.h>
-#include <zephyr/posix/pthread.h>
+//#include <zephyr/posix/pthread.h>
 #else
 #include <pthread.h>
 #endif
