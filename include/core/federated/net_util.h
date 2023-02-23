@@ -43,9 +43,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <zephyr/net/socket.h>
 #else
 #include <sys/socket.h>
+#include <regex.h>
 #endif
 #include <sys/types.h>
-#include <regex.h>
 #include <stdbool.h>
 
 #include "../platform.h"
@@ -350,14 +350,14 @@ bool validate_user(const char* user);
  * Extract one match group from the rti_addr regex .
  * @return true if SUCCESS, else false.
  */
-bool extract_match_group(const char* rti_addr, char* dest, regmatch_t group,
-		int max_len, int min_len, const char* err_msg);
+//bool extract_match_group(const char* rti_addr, char* dest, regmatch_t group,
+//		int max_len, int min_len, const char* err_msg);
 
 /**
  * Extract match groups from the rti_addr regex.
  * @return true if success, else false.
  */
-bool extract_match_groups(const char* rti_addr, char** rti_addr_strs, bool** rti_addr_flags, regmatch_t* group_array, int* gids, int* max_lens, int* min_lens, const char** err_msgs);
+//bool extract_match_groups(const char* rti_addr, char** rti_addr_strs, bool** rti_addr_flags, regmatch_t* group_array, int* gids, int* max_lens, int* min_lens, const char** err_msgs);
 
 /**
  * Extract the host, port and user from rti_addr.

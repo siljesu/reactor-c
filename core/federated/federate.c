@@ -39,13 +39,13 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <signal.h>     // Defines sigaction.
 #include <sys/socket.h>
 #include <unistd.h>     // Defines read(), write(), and close()
+#include <regex.h>
 #endif
 #include <assert.h>
 #include <errno.h>      // Defined perror(), errno
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>    // Defines bzero().
-#include <regex.h>
 
 #include "clock-sync.c"
 #include "federate.h"

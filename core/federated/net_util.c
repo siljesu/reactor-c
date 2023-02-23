@@ -579,21 +579,21 @@ void encode_tag(
  * @return true if there is a match, false otherwise.
  */
 bool match_regex(const char* str, char* regex) {
-    regex_t regex_compiled;
-    regmatch_t group;
-    bool valid = false;
+    // regex_t regex_compiled;
+    // regmatch_t group;
+    // bool valid = false;
 
-    if (regcomp(&regex_compiled, regex, REG_EXTENDED)) {
-        lf_print_error("Could not compile regex to parse RTI address");
-        return valid;
-    }
+    // if (regcomp(&regex_compiled, regex, REG_EXTENDED)) {
+    //     lf_print_error("Could not compile regex to parse RTI address");
+    //     return valid;
+    // }
 
-    // regexec returns 0 when a match is found.
-    if (regexec(&regex_compiled, str, 1, &group, 0) == 0) {
-        valid = true;
-    }
-    regfree(&regex_compiled);
-    return valid;
+    // // regexec returns 0 when a match is found.
+    // if (regexec(&regex_compiled, str, 1, &group, 0) == 0) {
+    //     valid = true;
+    // }
+    // regfree(&regex_compiled);
+    // return valid;
 }
 
 
@@ -644,35 +644,35 @@ bool validate_user(const char* user) {
  * Extract one match group from the rti_addr regex .
  * @return true if SUCCESS, else false.
  */
-bool extract_match_group(const char* rti_addr, char* dest, regmatch_t group, 
-        int max_len, int min_len, const char* err_msg) {
-    size_t size = group.rm_eo - group.rm_so;
-    if (size > max_len || size < min_len) {
-        lf_print_error("%s", err_msg);
-        return false;
-    }
-    strncpy(dest, &rti_addr[group.rm_so], size);
-    dest[size] = '\0';
-    return true;
-}
+// bool extract_match_group(const char* rti_addr, char* dest, regmatch_t group, 
+//         int max_len, int min_len, const char* err_msg) {
+//     size_t size = group.rm_eo - group.rm_so;
+//     if (size > max_len || size < min_len) {
+//         lf_print_error("%s", err_msg);
+//         return false;
+//     }
+//     strncpy(dest, &rti_addr[group.rm_so], size);
+//     dest[size] = '\0';
+//     return true;
+// }
 
 /**
  * Extract match groups from the rti_addr regex.
  * @return true if success, else false.
  */
-bool extract_match_groups(const char* rti_addr, char** rti_addr_strs, bool** rti_addr_flags, regmatch_t* group_array,
-        int* gids, int* max_lens, int* min_lens, const char** err_msgs) {
-    for (int i = 0; i < 3; i++) {
-        if (group_array[gids[i]].rm_so != -1) {
-            if (!extract_match_group(rti_addr, rti_addr_strs[i], group_array[gids[i]], max_lens[i], min_lens[i], err_msgs[i])) {
-                return false;
-            } else {
-                *rti_addr_flags[i] = true;
-            }
-        }
-    }
-    return true;
-}
+// bool extract_match_groups(const char* rti_addr, char** rti_addr_strs, bool** rti_addr_flags, regmatch_t* group_array,
+//         int* gids, int* max_lens, int* min_lens, const char** err_msgs) {
+//     for (int i = 0; i < 3; i++) {
+//         if (group_array[gids[i]].rm_so != -1) {
+//             if (!extract_match_group(rti_addr, rti_addr_strs[i], group_array[gids[i]], max_lens[i], min_lens[i], err_msgs[i])) {
+//                 return false;
+//             } else {
+//                 *rti_addr_flags[i] = true;
+//             }
+//         }
+//     }
+//     return true;
+// }
 
 /**
  * Extract the host, port and user from rti_addr.
@@ -691,22 +691,22 @@ void extract_rti_addr_info(const char* rti_addr, rti_addr_info_t* rti_addr_info)
                          "Host must be between 1 to 255 characters long.",
                          "Port must be between 1 to 5 characters long."};
 
-    regex_t regex_compiled;
-    regmatch_t group_array[max_groups];
+    // regex_t regex_compiled;
+    // regmatch_t group_array[max_groups];
 
-    if (regcomp(&regex_compiled, regex_str, REG_EXTENDED)) {
-        lf_print_error("Could not compile regex to parse RTI address");
-        return;
-    }
+    // if (regcomp(&regex_compiled, regex_str, REG_EXTENDED)) {
+    //     lf_print_error("Could not compile regex to parse RTI address");
+    //     return;
+    // }
 
-    if (regexec(&regex_compiled, rti_addr, max_groups, group_array, 0) == 0) {
-        // Check for matched username. group_array[0] is the entire matched string.
-        for (int i = 1; i < max_groups; i++) {
-            LF_PRINT_DEBUG("runtime rti_addr regex: so: %lld   eo: %lld\n", group_array[i].rm_so, group_array[i].rm_eo);
-        }
-        if (!extract_match_groups(rti_addr, rti_addr_strs, rti_addr_flags, group_array, gids, max_lens, min_lens, err_msgs)) {
-            memset(rti_addr_info, 0, sizeof(rti_addr_info_t));
-        }
-    }
-    regfree(&regex_compiled);
+    // if (regexec(&regex_compiled, rti_addr, max_groups, group_array, 0) == 0) {
+    //     // Check for matched username. group_array[0] is the entire matched string.
+    //     for (int i = 1; i < max_groups; i++) {
+    //         LF_PRINT_DEBUG("runtime rti_addr regex: so: %lld   eo: %lld\n", group_array[i].rm_so, group_array[i].rm_eo);
+    //     }
+    //     if (!extract_match_groups(rti_addr, rti_addr_strs, rti_addr_flags, group_array, gids, max_lens, min_lens, err_msgs)) {
+    //         memset(rti_addr_info, 0, sizeof(rti_addr_info_t));
+    //     }
+    // }
+    // regfree(&regex_compiled);
 }
