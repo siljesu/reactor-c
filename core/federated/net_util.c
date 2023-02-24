@@ -33,9 +33,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef PLATFORM_ZEPHYR
 #include <zephyr/kernel.h>
 #else
-#include <string.h>     // Defines memcpy()
 #include <unistd.h>     // Defines read(), write(), and close()
 #endif
+#include <string.h>     // Defines memcpy()
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
@@ -105,7 +105,8 @@ ssize_t read_from_socket_errexit(
 	}
     ssize_t bytes_read = 0;
     while (bytes_read < (ssize_t)num_bytes) {
-        ssize_t more = read(socket, buffer + bytes_read, num_bytes - (size_t)bytes_read);
+        //ssize_t more = read(socket, buffer + bytes_read, num_bytes - (size_t)bytes_read); // FIXME: Swap with non-posix alternative
+        ssize_t more = recv(socket, buffer + bytes_read, num_bytes - (size_t)bytes_read, 0);
         if(more <= 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
             // The error code set by the socket indicates
             // that we should try again (@see man errno).
@@ -179,7 +180,8 @@ ssize_t write_to_socket_errexit_with_mutex(
     ssize_t bytes_written = 0;
     va_list args;
     while (bytes_written < (ssize_t)num_bytes) {
-        ssize_t more = write(socket, buffer + bytes_written, num_bytes - (size_t)bytes_written);
+        //ssize_t more = write(socket, buffer + bytes_written, num_bytes - (size_t)bytes_written); // FIXME: Swap with non-posix alternative
+        ssize_t more = send(socket, buffer + bytes_written, num_bytes - (size_t)bytes_written, 0);
         if (more <= 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
                     // The error code set by the socket indicates
                     // that we should try again (@see man errno).
@@ -594,6 +596,7 @@ bool match_regex(const char* str, char* regex) {
     // }
     // regfree(&regex_compiled);
     // return valid;
+    return true;
 }
 
 
