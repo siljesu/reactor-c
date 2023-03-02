@@ -1004,20 +1004,20 @@ void connect_to_rti(const char* hostname, int port) {
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_INET;          /* Allow IPv4 */
     hints.ai_socktype = SOCK_STREAM;    /* Stream (TCP) socket */
-    hints.ai_protocol = 0;              /* Any protocol */
+    hints.ai_protocol = IPPROTO_TCP;    /* TCP/IP protocol */
     hints.ai_addr = NULL;
     hints.ai_next = NULL;
     hints.ai_flags = AI_NUMERICSERV;
-
     while (result < 0) {
-
-        int server = getaddrinfo(hostname, (char*)UINT_TO_POINTER(uport), &hints, &res);
+        char str[6]; // FIXME: size
+        sprintf(str,"%u",uport);
+        int server = getaddrinfo(hostname, &str, &hints, &res);
         if (server != 0) {
             lf_print_error_and_exit("Could not get addr info from host name.");
         }
         for (rp = res; rp != NULL; rp = rp->ai_next) {
             _fed.socket_TCP_RTI = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-            if (_fed.socket_TCP_RTI == -1) {
+            if (_fed.socket_TCP_RTI < 0) {
                 lf_print("Failed to create socket. Trying next address.");
                 continue;
             }
