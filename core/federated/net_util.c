@@ -32,6 +32,11 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef PLATFORM_ZEPHYR
 #include <zephyr/kernel.h>
+#include <zephyr/net/socket.h>
+// Wrapper for posix universal file descriptor function read/write() to 
+// socket-specific function recv/send, implemented by Zephyr's socket API
+#define read(sock_fd, buf, max_len) recv(sock_fd, buf, max_len, 0)
+#define write(sock_fd, buf, len) send(sock_fd, buf, len, 0)
 #else
 #include <unistd.h>     // Defines read(), write(), and close()
 #endif
@@ -105,8 +110,7 @@ ssize_t read_from_socket_errexit(
 	}
     ssize_t bytes_read = 0;
     while (bytes_read < (ssize_t)num_bytes) {
-        //ssize_t more = read(socket, buffer + bytes_read, num_bytes - (size_t)bytes_read); // FIXME: Swap with non-posix alternative
-        ssize_t more = recv(socket, buffer + bytes_read, num_bytes - (size_t)bytes_read, 0);
+        ssize_t more = read(socket, buffer + bytes_read, num_bytes - (size_t)bytes_read); // FIXME: Swap with non-posix alternative
         if(more <= 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
             // The error code set by the socket indicates
             // that we should try again (@see man errno).
@@ -124,7 +128,7 @@ ssize_t read_from_socket_errexit(
             	// upon receiving a zero length packet or an error, we can close the socket.
             	// If there are any pending outgoing messages, this will attempt to send those
             	// followed by an EOF.
-            	close(socket);
+                close(socket);
             }
             return more;
         }
@@ -180,8 +184,7 @@ ssize_t write_to_socket_errexit_with_mutex(
     ssize_t bytes_written = 0;
     va_list args;
     while (bytes_written < (ssize_t)num_bytes) {
-        //ssize_t more = write(socket, buffer + bytes_written, num_bytes - (size_t)bytes_written); // FIXME: Swap with non-posix alternative
-        ssize_t more = send(socket, buffer + bytes_written, num_bytes - (size_t)bytes_written, 0);
+        ssize_t more = write(socket, buffer + bytes_written, num_bytes - (size_t)bytes_written); // FIXME: Swap with non-posix alternative
         if (more <= 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
                     // The error code set by the socket indicates
                     // that we should try again (@see man errno).
