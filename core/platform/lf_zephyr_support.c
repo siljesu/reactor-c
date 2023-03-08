@@ -334,7 +334,7 @@ int lf_notify_of_event() {
 #warning "Threaded support on Zephyr is still experimental"
 
 // FIXME: What is an appropriate stack size?
-#define _LF_STACK_SIZE 1024
+#define _LF_STACK_SIZE 4096
 // FIXME: What is an appropriate thread prio?
 #define _LF_THREAD_PRIORITY 5
 
@@ -344,8 +344,43 @@ int lf_notify_of_event() {
 #define NUMBER_OF_WORKERS 1
 #endif
 
-static K_THREAD_STACK_ARRAY_DEFINE(stacks, NUMBER_OF_WORKERS, _LF_STACK_SIZE);
-static struct k_thread threads[NUMBER_OF_WORKERS];
+// If USER_THREADS is not specified, then default to 1. TODO: Make it possible to specify
+#if !defined(USER_THREADS)
+#define USER_THREADS 1
+#endif
+
+#ifdef FEDERATED
+
+#define RTI_SOCKET_LISTENER_THREAD 1
+
+#ifdef FEDERATED_DECENTRALIZED
+#define FEDERATE_SOCKET_LISTENER_THREADS 2
+#else
+#define FEDERATE_SOCKET_LISTENER_THREADS 0
+#endif // FEDERATED_DECENTRALIZED
+
+#ifdef _LF_CLOCK_SYNC_ON
+#define CLOCK_SYNC_THREAD 1
+#else
+#define CLOCK_SYNC_THREAD 0
+#endif // _LF_CLOCK_SYNC_ON
+
+#define NUMBER_OF_THREADS (NUMBER_OF_WORKERS \
+                           + WORKERS_NEEDED_FOR_FEDERATE \
+                           + RTI_SOCKET_LISTENER_THREAD \
+                           + FEDERATE_SOCKET_LISTENER_THREADS \
+                           + CLOCK_SYNC_THREAD \
+                           + USER_THREADS)
+
+#else
+
+#define NUMBER_OF_THREADS (NUMBER_OF_WORKERS \
+                            + USER_THREADS)
+
+#endif // FEDERATED
+
+static K_THREAD_STACK_ARRAY_DEFINE(stacks, NUMBER_OF_THREADS, _LF_STACK_SIZE);
+static struct k_thread threads[NUMBER_OF_THREADS];
 
 // Typedef that represents the function pointers passed by LF runtime into lf_thread_create
 typedef void *(*lf_function_t) (void *);
@@ -376,10 +411,9 @@ int lf_thread_create(lf_thread_t* thread, void *(*lf_thread) (void *), void* arg
     static int tid = 0;
 
     // Make sure we dont try to create too many threads
-    if (tid > (NUMBER_OF_WORKERS-1)) {
+    if (tid > (NUMBER_OF_THREADS-1)) {
         return -1;
     }
-
 
     k_tid_t my_tid = k_thread_create(&threads[tid], &stacks[tid][0],
                                     _LF_STACK_SIZE, zephyr_worker_entry,
