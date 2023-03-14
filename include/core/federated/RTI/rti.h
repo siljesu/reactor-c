@@ -35,12 +35,12 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define RTI_H
 
 #include "lf_types.h"
+#include "platform.h"
 #include "message_record/message_record.h"
 
 #define PLATFORM_ZEPHYR
 #ifdef PLATFORM_ZEPHYR
 #include <zephyr/kernel.h>
-#include <zephyr/posix/pthread.h>
 #else
 #endif
 
@@ -77,7 +77,7 @@ typedef enum fed_state_t {
  */
 typedef struct federate_t {
     uint16_t id;            // ID of this federate.
-    pthread_t thread_id;    // The ID of the thread handling communication with this federate.
+    lf_thread_t thread_id;    // The ID of the thread handling communication with this federate.
     int socket;             // The TCP socket descriptor for communicating with this federate.
     struct sockaddr_in UDP_addr;           // The UDP address for the federate.
     bool clock_synchronization_enabled;    // Indicates the status of clock synchronization
@@ -124,13 +124,13 @@ typedef enum clock_sync_stat {
  */
 typedef struct RTI_instance_t {
     // The main mutex lock.
-    pthread_mutex_t rti_mutex;
+    lf_mutex_t rti_mutex;
 
     // Condition variable used to signal receipt of all proposed start times.
-    pthread_cond_t received_start_times;
+    lf_cond_t received_start_times;
 
     // Condition variable used to signal that a start time has been sent to a federate.
-    pthread_cond_t sent_start_time;
+    lf_cond_t sent_start_time;
 
     // RTI's decided stop tag for federates
     tag_t max_stop_tag;
@@ -186,7 +186,7 @@ typedef struct RTI_instance_t {
 
     /************* Clock synchronization information *************/
     /* Thread performing PTP clock sync sessions periodically. */
-    pthread_t clock_thread;
+    lf_thread_t clock_thread;
 
     /**
      * Indicates whether clock sync is globally on for the federation. Federates

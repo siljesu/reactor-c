@@ -365,11 +365,14 @@ int lf_notify_of_event() {
 #define CLOCK_SYNC_THREAD 0
 #endif // _LF_CLOCK_SYNC_ON
 
+#define RTI_THREADS 3
+
 #define NUMBER_OF_THREADS (NUMBER_OF_WORKERS \
                            + WORKERS_NEEDED_FOR_FEDERATE \
                            + RTI_SOCKET_LISTENER_THREAD \
                            + FEDERATE_SOCKET_LISTENER_THREADS \
                            + CLOCK_SYNC_THREAD \
+                           + RTI_THREADS \
                            + USER_THREADS)
 
 #else

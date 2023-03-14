@@ -33,9 +33,16 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <errno.h>
 #include <math.h>
 
+#ifdef PLATFORM_ZEPHYR
+#include <zephyr/net/net_ip.h>
+#include <zephyr/net/socket.h>
+#define MSG_WAITALL ZSOCK_MSG_WAITALL
+#endif
+
 #include "clock-sync.h"
 #include "net_common.h"
 #include "net_util.h"
+#include "util.h"
 
 /**
  * Keep a record of connection statistics
