@@ -48,8 +48,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define PLATFORM_ZEPHYR
 #ifdef PLATFORM_ZEPHYR
 #include <zephyr/kernel.h>
-#include <zephyr/net/socket.h>
-#include <zephyr/net/socket_select.h>
+#include <zephyr/posix/sys/socket.h>
+#define SHUT_WR ZSOCK_SHUT_WR
+#define SHUT_RDWR ZSOCK_SHUT_RDWR
 #else
 #include <sys/socket.h>
 #include <sys/types.h>  // Provides select() function to read from multiple sockets.
@@ -67,9 +68,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "platform.h"   // Platform-specific types and functions
 #include "../../utils/util.c" // Defines print functions (e.g., lf_print).
-#include "../net_util.c"   // Defines network functions.
+#include "net_util.h"   // Defines network functions.
 #include "net_common.h" // Defines message types, etc. Includes <pthread.h> and "reactor.h".
-#include "../../tag.c"        // Time-related types and functions.
+#include "tag.h"        // Time-related types and functions.
 #include "message_record/message_record.c"
 #include "RTI/rti.h"
 #ifdef __RTI_AUTH__
@@ -125,7 +126,7 @@ void mark_federate_requesting_stop(federate_t* fed);
  * @param socket_type The type of the socket for the server (TCP or UDP).
  * @return The socket descriptor on which to accept connections.
  */
-int create_server(int32_t specified_port, uint16_t port, socket_type_t socket_type) {
+int rti_create_server(int32_t specified_port, uint16_t port, socket_type_t socket_type) {
     // Timeout time for the communications of the server
     struct timeval timeout_time = {.tv_sec = TCP_TIMEOUT_TIME / BILLION, .tv_usec = (TCP_TIMEOUT_TIME % BILLION) / 1000};
     // Create an IPv4 socket for TCP (not UDP) communication over IP (0).
@@ -636,7 +637,7 @@ void update_federate_next_event_tag_locked(uint16_t federate_id, tag_t next_even
  *
  * This function assumes the caller does not hold the mutex.
  */
-void handle_port_absent_message(federate_t* sending_federate, unsigned char* buffer) {
+void rti_handle_port_absent_message(federate_t* sending_federate, unsigned char* buffer) {
     size_t message_size = sizeof(uint16_t) + sizeof(uint16_t) + sizeof(int64_t) + sizeof(uint32_t);
 
     read_from_socket_errexit(sending_federate->socket, message_size, &(buffer[1]),
@@ -979,7 +980,7 @@ void mark_federate_requesting_stop(federate_t* fed) {
  *
  * @param fed The federate sending a MSG_TYPE_STOP_REQUEST message.
  */
-void handle_stop_request_message(federate_t* fed) {
+void rti_handle_stop_request_message(federate_t* fed) {
     LF_PRINT_DEBUG("RTI handling stop_request from federate %d.", fed->id);
 
     size_t bytes_to_read = MSG_TYPE_STOP_REQUEST_LENGTH - 1;
@@ -1506,7 +1507,7 @@ void* federate_thread_TCP(void* fed) {
                 handle_logical_tag_complete(my_fed);
                 break;
             case MSG_TYPE_STOP_REQUEST:
-                handle_stop_request_message(my_fed); // FIXME: Reviewed until here.
+                rti_handle_stop_request_message(my_fed); // FIXME: Reviewed until here.
                                                      // Need to also look at
                                                      // send_advance_grant_if_safe()
                                                      // and send_downstream_advance_grants_if_safe()
@@ -1515,7 +1516,7 @@ void* federate_thread_TCP(void* fed) {
                 handle_stop_request_reply(my_fed);
                 break;
             case MSG_TYPE_PORT_ABSENT:
-                handle_port_absent_message(my_fed, buffer);
+                rti_handle_port_absent_message(my_fed, buffer);
                 break;
             default:
                 lf_print_error("RTI received from federate %d an unrecognized TCP message type: %u.", my_fed->id, buffer[0]);
@@ -2021,12 +2022,12 @@ int32_t start_rti_server(uint16_t port) {
     }
     lf_initialize_clock();
     // Create the TCP socket server
-    _RTI.socket_descriptor_TCP = create_server(specified_port, port, TCP);
+    _RTI.socket_descriptor_TCP = rti_create_server(specified_port, port, TCP);
     lf_print("RTI: Listening for federates.");
     // Create the UDP socket server
     // Try to get the _RTI.final_port_TCP + 1 port
     if (_RTI.clock_sync_global_status >= clock_sync_on) {
-        _RTI.socket_descriptor_UDP = create_server(specified_port, _RTI.final_port_TCP + 1, UDP);
+        _RTI.socket_descriptor_UDP = rti_create_server(specified_port, _RTI.final_port_TCP + 1, UDP);
     }
     return _RTI.socket_descriptor_TCP;
 }
@@ -2121,7 +2122,7 @@ void wait_for_federates(int socket_descriptor) {
 /**
  * Print a usage message.
  */
-void usage(int argc, char* argv[]) {
+void rti_usage(int argc, char* argv[]) {
     printf("\nCommand-line arguments: \n\n");
     printf("  -i, --id <n>\n");
     printf("   The ID of the federation that this RTI will control.\n\n");
@@ -2171,12 +2172,12 @@ int process_clock_sync_args(int argc, char* argv[]) {
         } else if (strcmp(argv[i], "period") == 0) {
             if (_RTI.clock_sync_global_status != clock_sync_on) {
                 fprintf(stderr, "Error: clock sync period can only be set if --clock-sync is set to on.\n");
-                usage(argc, argv);
+                rti_usage(argc, argv);
                 i++;
                 continue; // Try to parse the rest of the arguments as clock sync args.
             } else if (argc < i + 2) {
                 fprintf(stderr, "Error: clock sync period needs a time (in nanoseconds) argument.\n");
-                usage(argc, argv);
+                rti_usage(argc, argv);
                 continue;
             }
             i++;
@@ -2191,11 +2192,11 @@ int process_clock_sync_args(int argc, char* argv[]) {
             if (_RTI.clock_sync_global_status != clock_sync_on && _RTI.clock_sync_global_status != clock_sync_init) {
                 fprintf(stderr, "Error: clock sync exchanges-per-interval can only be set if\n");
                 fprintf(stderr, "--clock-sync is set to on or init.\n");
-                usage(argc, argv);
+                rti_usage(argc, argv);
                 continue; // Try to parse the rest of the arguments as clock sync args.
             } else if (argc < i + 2) {
                 fprintf(stderr, "Error: clock sync exchanges-per-interval needs an integer argument.\n");
-                usage(argc, argv);
+                rti_usage(argc, argv);
                 continue; // Try to parse the rest of the arguments as clock sync args.
             }
             i++;
@@ -2224,12 +2225,12 @@ int process_clock_sync_args(int argc, char* argv[]) {
  * understood, then print a usage message and return 0. Otherwise, return 1.
  * @return 1 if the arguments processed successfully, 0 otherwise.
  */
-int process_args(int argc, char* argv[]) {
+int rti_process_args(int argc, char* argv[]) {
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-i") == 0 || strcmp(argv[i], "--id") == 0) {
             if (argc < i + 2) {
                 fprintf(stderr, "Error: --id needs a string argument.\n");
-                usage(argc, argv);
+                rti_usage(argc, argv);
                 return 0;
             }
             i++;
@@ -2238,14 +2239,14 @@ int process_args(int argc, char* argv[]) {
         } else if (strcmp(argv[i], "-n") == 0 || strcmp(argv[i], "--number_of_federates") == 0) {
             if (argc < i + 2) {
                 fprintf(stderr, "Error: --number_of_federates needs an integer argument.\n");
-                usage(argc, argv);
+                rti_usage(argc, argv);
                 return 0;
             }
             i++;
             long num_federates = strtol(argv[i], NULL, 10);
             if (num_federates == 0L || num_federates == LONG_MAX ||  num_federates == LONG_MIN) {
                 fprintf(stderr, "Error: --number_of_federates needs a valid positive integer argument.\n");
-                usage(argc, argv);
+                rti_usage(argc, argv);
                 return 0;
             }
             _RTI.number_of_federates = (int32_t)num_federates; // FIXME: Loses numbers on 64-bit machines
@@ -2257,7 +2258,7 @@ int process_args(int argc, char* argv[]) {
                     "Error: --port needs a short unsigned integer argument ( > 0 and < %d).\n",
                     UINT16_MAX
                 );
-                usage(argc, argv);
+                rti_usage(argc, argv);
                 return 0;
             }
             i++;
@@ -2268,14 +2269,14 @@ int process_args(int argc, char* argv[]) {
                     "Error: --port needs a short unsigned integer argument ( > 0 and < %d).\n",
                     UINT16_MAX
                 );
-                usage(argc, argv);
+                rti_usage(argc, argv);
                 return 0;
             }
             _RTI.user_specified_port = (uint16_t)RTI_port;
         } else if (strcmp(argv[i], "-c") == 0 || strcmp(argv[i], "--clock_sync") == 0) {
             if (argc < i + 2) {
                fprintf(stderr, "Error: --clock-sync needs off|init|on.\n");
-               usage(argc, argv);
+               rti_usage(argc, argv);
                return 0;
            }
            i++;
@@ -2287,20 +2288,20 @@ int process_args(int argc, char* argv[]) {
             continue;
         }  else {
            fprintf(stderr, "Error: Unrecognized command-line argument: %s\n", argv[i]);
-           usage(argc, argv);
+           rti_usage(argc, argv);
            return 0;
        }
     }
     if (_RTI.number_of_federates == 0) {
         fprintf(stderr, "Error: --number_of_federates needs a valid positive integer argument.\n");
-        usage(argc, argv);
+        rti_usage(argc, argv);
         return 0;
     }
     return 1;
 }
 
 int lf_rti_main(int argc, char* argv[]) {
-    if (!process_args(argc, argv)) {
+    if (!rti_process_args(argc, argv)) {
         // Processing command-line arguments failed.
         return -1;
     }
