@@ -37,6 +37,15 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "lf_types.h"
 #include "message_record/message_record.h"
 
+#define PLATFORM_ZEPHYR
+#ifdef PLATFORM_ZEPHYR
+#include <zephyr/kernel.h>
+#include <zephyr/posix/pthread.h>
+#else
+#endif
+
+int lf_rti_main(int argc, char* argv[]);
+
 /////////////////////////////////////////////
 //// Data structures
 

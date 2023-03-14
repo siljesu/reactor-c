@@ -16,6 +16,11 @@ list(APPEND INFO_SOURCES ${GENERAL_SOURCES})
 add_library(core ${GENERAL_SOURCES})
 
 # Add sources for either threaded or unthreaded runtime
+if (DEFINED FEDERATED)
+    include(federated/CMakeLists.txt)
+endif()
+
+# Add sources for either threaded or unthreaded runtime
 if(DEFINED LF_THREADED)
     message(STATUS "Including sources for threaded runtime with \
 ${NUMBER_OF_WORKERS} worker(s) with scheduler=${SCHEDULER} and \
@@ -41,6 +46,7 @@ message(STATUS "Including the following sources: " ${PRINTABLE_SOURCE_LIST})
 target_include_directories(core PUBLIC ../include)
 target_include_directories(core PUBLIC ../include/core)
 target_include_directories(core PUBLIC ../include/core/federated)
+target_include_directories(core PUBLIC ../include/core/federated/RTI)
 target_include_directories(core PUBLIC ../include/core/platform)
 target_include_directories(core PUBLIC ../include/core/modal_models)
 target_include_directories(core PUBLIC ../include/core/threaded)

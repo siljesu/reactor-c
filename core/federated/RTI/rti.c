@@ -45,26 +45,34 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * implementation. In the future it might be re-implemented in Java or Kotlin.
  * Or we could bootstrap and implement it using Lingua Franca.
  */
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>      // Defines perror(), errno
+#define PLATFORM_ZEPHYR
+#ifdef PLATFORM_ZEPHYR
+#include <zephyr/kernel.h>
+#include <zephyr/net/socket.h>
+#include <zephyr/net/socket_select.h>
+#include <zephyr/posix/pthread.h>
+#else
 #include <sys/socket.h>
 #include <sys/types.h>  // Provides select() function to read from multiple sockets.
 #include <netinet/in.h> // Defines struct sockaddr_in
 #include <arpa/inet.h>  // inet_ntop & inet_pton
-#include <unistd.h>     // Defines read(), write(), and close()
+//#include <sys/wait.h>   // Defines wait() for process to change state.
 #include <netdb.h>      // Defines gethostbyname().
+#endif
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>      // Defines perror(), errno
+#include <unistd.h>     // Defines read(), write(), and close()
 #include <strings.h>    // Defines bzero().
 #include <assert.h>
-#include <sys/wait.h>   // Defines wait() for process to change state.
 
 #include "platform.h"   // Platform-specific types and functions
-#include "util.c" // Defines print functions (e.g., lf_print).
-#include "net_util.c"   // Defines network functions.
+#include "../../utils/util.c" // Defines print functions (e.g., lf_print).
+#include "../net_util.c"   // Defines network functions.
 #include "net_common.h" // Defines message types, etc. Includes <pthread.h> and "reactor.h".
-#include "tag.c"        // Time-related types and functions.
-#include "rti.h"
+#include "../../tag.c"        // Time-related types and functions.
+#include "message_record/message_record.c"
+#include "RTI/rti.h"
 #ifdef __RTI_AUTH__
 #include <openssl/rand.h> // For secure random number generation.
 #include <openssl/hmac.h> // For HMAC authentication.
@@ -2292,7 +2300,7 @@ int process_args(int argc, char* argv[]) {
     return 1;
 }
 
-int main(int argc, char* argv[]) {
+int lf_rti_main(int argc, char* argv[]) {
     if (!process_args(argc, argv)) {
         // Processing command-line arguments failed.
         return -1;
@@ -2307,4 +2315,8 @@ int main(int argc, char* argv[]) {
     wait_for_federates(socket_descriptor);
     printf("RTI is exiting.\n");
     return 0;
+}
+
+int main(int argc, char* argv[]) {
+    return lf_rti_main(argc, argv);
 }

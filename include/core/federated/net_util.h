@@ -40,7 +40,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef PLATFORM_ZEPHYR
 #include <zephyr/kernel.h>
-#include <zephyr/net/socket.h>
 #else
 #include <sys/socket.h>
 #include <regex.h>

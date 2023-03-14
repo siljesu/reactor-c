@@ -31,7 +31,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #ifdef PLATFORM_ZEPHYR
 #include <zephyr/kernel.h>
-#include <zephyr/net/socket.h>
+#include <zephyr/posix/sys/socket.h>
 #else
 #include <arpa/inet.h>  // inet_ntop & inet_pton
 #include <netdb.h>      // Defines gethostbyname().
