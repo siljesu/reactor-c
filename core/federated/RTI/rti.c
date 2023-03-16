@@ -148,8 +148,6 @@ int rti_create_server(int32_t specified_port, uint16_t port, socket_type_t socke
         lf_print_error("RTI failed to set SO_REUSEADDR option on the socket: %s.", strerror(errno));
     }
     // FIXME: Setting timeout values using timeval in Zephyr?
-    #ifdef PLATFORM_ZEPHYR
-    #else
     // Set the timeout on the socket so that read and write operations don't block for too long
     if (setsockopt(socket_descriptor, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout_time, sizeof(timeout_time)) < 0) {
         lf_print_error("RTI failed to set SO_RCVTIMEO option on the socket: %s.", strerror(errno));
@@ -157,7 +155,6 @@ int rti_create_server(int32_t specified_port, uint16_t port, socket_type_t socke
     if (setsockopt(socket_descriptor, SOL_SOCKET, SO_SNDTIMEO, (const char*)&timeout_time, sizeof(timeout_time)) < 0) {
         lf_print_error("RTI failed to set SO_SNDTIMEO option on the socket: %s.", strerror(errno));
     }
-    #endif
     /*
      * The following used to permit reuse of a port that an RTI has previously
      * used that has not been released. We no longer do this, but instead
