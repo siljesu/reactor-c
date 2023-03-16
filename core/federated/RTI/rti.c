@@ -45,7 +45,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * implementation. In the future it might be re-implemented in Java or Kotlin.
  * Or we could bootstrap and implement it using Lingua Franca.
  */
-#define PLATFORM_ZEPHYR
+
 #ifdef PLATFORM_ZEPHYR
 #include <zephyr/kernel.h>
 #include <zephyr/posix/sys/socket.h>
@@ -147,6 +147,9 @@ int rti_create_server(int32_t specified_port, uint16_t port, socket_type_t socke
     if (setsockopt(socket_descriptor, SOL_SOCKET, SO_REUSEADDR, &true_variable, sizeof(int32_t)) < 0) {
         lf_print_error("RTI failed to set SO_REUSEADDR option on the socket: %s.", strerror(errno));
     }
+    // FIXME: Setting timeout values using timeval in Zephyr?
+    #ifdef PLATFORM_ZEPHYR
+    #else
     // Set the timeout on the socket so that read and write operations don't block for too long
     if (setsockopt(socket_descriptor, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout_time, sizeof(timeout_time)) < 0) {
         lf_print_error("RTI failed to set SO_RCVTIMEO option on the socket: %s.", strerror(errno));
@@ -154,7 +157,7 @@ int rti_create_server(int32_t specified_port, uint16_t port, socket_type_t socke
     if (setsockopt(socket_descriptor, SOL_SOCKET, SO_SNDTIMEO, (const char*)&timeout_time, sizeof(timeout_time)) < 0) {
         lf_print_error("RTI failed to set SO_SNDTIMEO option on the socket: %s.", strerror(errno));
     }
-
+    #endif
     /*
      * The following used to permit reuse of a port that an RTI has previously
      * used that has not been released. We no longer do this, but instead
@@ -2300,8 +2303,10 @@ int rti_process_args(int argc, char* argv[]) {
     return 1;
 }
 
-int lf_rti_main(int argc, char* argv[]) {
-    if (!rti_process_args(argc, argv)) {
+int lf_rti_main(void *args) {
+    struct rti_args *rti_args = (struct rti_args *)args;
+    printf("number of arguments given: %u\n", rti_args->argc);
+    if (!rti_process_args(rti_args->argc, rti_args->argv)) {
         // Processing command-line arguments failed.
         return -1;
     }
@@ -2319,6 +2324,19 @@ int lf_rti_main(int argc, char* argv[]) {
 
 #ifndef PLATFORM_ZEPHYR
 int main(int argc, char* argv[]) {
-    return lf_rti_main(argc, argv);
+    if (!rti_process_args(argc, argv)) {
+        // Processing command-line arguments failed.
+        return -1;
+    }
+    printf("Starting RTI for %d federates in federation ID %s\n", _RTI.number_of_federates, _RTI.federation_id);
+    assert(_RTI.number_of_federates < UINT16_MAX);
+    _RTI.federates = (federate_t*)calloc(_RTI.number_of_federates, sizeof(federate_t));
+    for (uint16_t i = 0; i < _RTI.number_of_federates; i++) {
+        initialize_federate(i);
+    }
+    int socket_descriptor = start_rti_server(_RTI.user_specified_port);
+    wait_for_federates(socket_descriptor);
+    printf("RTI is exiting.\n");
+    return 0;
 }
 #endif

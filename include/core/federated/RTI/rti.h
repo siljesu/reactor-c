@@ -38,13 +38,12 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "platform.h"
 #include "message_record/message_record.h"
 
-#define PLATFORM_ZEPHYR
 #ifdef PLATFORM_ZEPHYR
 #include <zephyr/kernel.h>
 #else
 #endif
 
-int lf_rti_main(int argc, char* argv[]);
+int lf_rti_main(void *args);
 
 /////////////////////////////////////////////
 //// Data structures
@@ -209,5 +208,11 @@ typedef struct RTI_instance_t {
      */
     bool authentication_enabled;
 } RTI_instance_t;
+
+// Struct for handling arguments to RTI
+struct rti_args {
+    int argc;
+    char **argv;
+};
 
 #endif // RTI_H
