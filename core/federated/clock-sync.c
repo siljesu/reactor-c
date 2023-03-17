@@ -34,8 +34,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <math.h>
 
 #ifdef PLATFORM_ZEPHYR
-#include <zephyr/net/net_ip.h>
-#include <zephyr/net/socket.h>
+#include <zephyr/posix/sys/socket.h>
 #define MSG_WAITALL ZSOCK_MSG_WAITALL
 #endif
 
