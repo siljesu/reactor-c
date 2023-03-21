@@ -344,28 +344,77 @@ int lf_notify_of_event() {
 #define NUMBER_OF_WORKERS 1
 #endif
 
-// If USER_THREADS is not specified, then default to 1. TODO: Make it possible to specify
+// FIXME: Make it possible to specify
+// If USER_THREADS is not specified, then default to 1.
 #if !defined(USER_THREADS)
 #define USER_THREADS 1
 #endif
 
-#ifdef FEDERATED
-
+#ifdef FEDERATED && FEDERATED_DECENTRALIZED
 #define RTI_SOCKET_LISTENER_THREAD 1
-
-#ifdef FEDERATED_DECENTRALIZED
 #define FEDERATE_SOCKET_LISTENER_THREADS 2
-#else
-#define FEDERATE_SOCKET_LISTENER_THREADS 0
-#endif // FEDERATED_DECENTRALIZED
 
-#ifdef _LF_CLOCK_SYNC_ON
+#elif FEDERATED && FEDERATED_CENTRALIZED
+#define RTI_SOCKET_LISTENER_THREAD 1
+#define FEDERATE_SOCKET_LISTENER_THREADS 0
+
+#else 
+#define RTI_SOCKET_LISTENER_THREAD 0
+#define FEDERATE_SOCKET_LISTENER_THREADS 0
+#endif
+
+#ifdef FEDERATED && _LF_CLOCK_SYNC_ON
 #define CLOCK_SYNC_THREAD 1
 #else
 #define CLOCK_SYNC_THREAD 0
-#endif // _LF_CLOCK_SYNC_ON
+#endif
 
+// FIXME: Let JOINT_RTI be set somewhere
+#define JOINT_RTI 1
+#ifdef FEDERATED && JOINT_RTI
 #define RTI_THREADS 3
+#else
+#define RTI_THREADS 0
+#endif
+
+// // FIXME: Make it possible to specify
+// // If USER_THREADS is not specified, then default to 1.
+// #if !defined(USER_THREADS)
+// #define USER_THREADS 1
+// #endif
+
+// #ifdef FEDERATED && FEDERATED_DECENTRALIZED && _LF_CLOCK_SYNC_ON
+// #define RTI_SOCKET_LISTENER_THREAD 1
+// #define FEDERATE_SOCKET_LISTENER_THREADS 2
+// #define CLOCK_SYNC_THREAD 1
+
+// #ifdef FEDERATED && FEDERATED_DECENTRALIZED && !_LF_CLOCK_SYNC_ON
+// #define RTI_SOCKET_LISTENER_THREAD 1
+// #define FEDERATE_SOCKET_LISTENER_THREADS 2
+// #define CLOCK_SYNC_THREAD 0
+
+// #elif FEDERATED && FEDERATED_CENTRALIZED && _LF_CLOCK_SYNC_ON
+// #define RTI_SOCKET_LISTENER_THREAD 1
+// #define FEDERATE_SOCKET_LISTENER_THREADS 0
+// #define CLOCK_SYNC_THREAD 1
+
+// #elif FEDERATED && FEDERATED_CENTRALIZED && !_LF_CLOCK_SYNC_ON
+// #define RTI_SOCKET_LISTENER_THREAD 1
+// #define FEDERATE_SOCKET_LISTENER_THREADS 0
+// #define CLOCK_SYNC_THREAD 0
+
+// // FIXME: Create a compile definition for whether RTI should be launched alongside federate or not
+// #define RTI_THREADS 3
+
+// #define NUMBER_OF_THREADS (NUMBER_OF_WORKERS \
+//                            + WORKERS_NEEDED_FOR_FEDERATE \
+//                            + RTI_SOCKET_LISTENER_THREAD \
+//                            + FEDERATE_SOCKET_LISTENER_THREADS \
+//                            + CLOCK_SYNC_THREAD \
+//                            + RTI_THREADS \
+//                            + USER_THREADS)
+
+
 
 #define NUMBER_OF_THREADS (NUMBER_OF_WORKERS \
                            + WORKERS_NEEDED_FOR_FEDERATE \
@@ -375,12 +424,6 @@ int lf_notify_of_event() {
                            + RTI_THREADS \
                            + USER_THREADS)
 
-#else
-
-#define NUMBER_OF_THREADS (NUMBER_OF_WORKERS \
-                            + USER_THREADS)
-
-#endif // FEDERATED
 
 static K_THREAD_STACK_ARRAY_DEFINE(stacks, NUMBER_OF_THREADS, _LF_STACK_SIZE);
 static struct k_thread threads[NUMBER_OF_THREADS];
