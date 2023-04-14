@@ -377,45 +377,6 @@ int lf_notify_of_event() {
 #define RTI_THREADS 0
 #endif
 
-// // FIXME: Make it possible to specify
-// // If USER_THREADS is not specified, then default to 1.
-// #if !defined(USER_THREADS)
-// #define USER_THREADS 1
-// #endif
-
-// #ifdef FEDERATED && FEDERATED_DECENTRALIZED && _LF_CLOCK_SYNC_ON
-// #define RTI_SOCKET_LISTENER_THREAD 1
-// #define FEDERATE_SOCKET_LISTENER_THREADS 2
-// #define CLOCK_SYNC_THREAD 1
-
-// #ifdef FEDERATED && FEDERATED_DECENTRALIZED && !_LF_CLOCK_SYNC_ON
-// #define RTI_SOCKET_LISTENER_THREAD 1
-// #define FEDERATE_SOCKET_LISTENER_THREADS 2
-// #define CLOCK_SYNC_THREAD 0
-
-// #elif FEDERATED && FEDERATED_CENTRALIZED && _LF_CLOCK_SYNC_ON
-// #define RTI_SOCKET_LISTENER_THREAD 1
-// #define FEDERATE_SOCKET_LISTENER_THREADS 0
-// #define CLOCK_SYNC_THREAD 1
-
-// #elif FEDERATED && FEDERATED_CENTRALIZED && !_LF_CLOCK_SYNC_ON
-// #define RTI_SOCKET_LISTENER_THREAD 1
-// #define FEDERATE_SOCKET_LISTENER_THREADS 0
-// #define CLOCK_SYNC_THREAD 0
-
-// // FIXME: Create a compile definition for whether RTI should be launched alongside federate or not
-// #define RTI_THREADS 3
-
-// #define NUMBER_OF_THREADS (NUMBER_OF_WORKERS \
-//                            + WORKERS_NEEDED_FOR_FEDERATE \
-//                            + RTI_SOCKET_LISTENER_THREAD \
-//                            + FEDERATE_SOCKET_LISTENER_THREADS \
-//                            + CLOCK_SYNC_THREAD \
-//                            + RTI_THREADS \
-//                            + USER_THREADS)
-
-
-
 #define NUMBER_OF_THREADS (NUMBER_OF_WORKERS \
                            + WORKERS_NEEDED_FOR_FEDERATE \
                            + RTI_SOCKET_LISTENER_THREAD \
@@ -424,6 +385,7 @@ int lf_notify_of_event() {
                            + RTI_THREADS \
                            + USER_THREADS)
 
+K_MUTEX_DEFINE(thread_mutex);
 
 static K_THREAD_STACK_ARRAY_DEFINE(stacks, NUMBER_OF_THREADS, _LF_STACK_SIZE);
 static struct k_thread threads[NUMBER_OF_THREADS];
@@ -453,6 +415,9 @@ int lf_available_cores() {
  *
  */
 int lf_thread_create(lf_thread_t* thread, void *(*lf_thread) (void *), void* arguments) {
+
+    k_mutex_lock(&thread_mutex, K_FOREVER);
+
     // Use static id to map each created thread to a 
     static int tid = 0;
 
@@ -469,6 +434,9 @@ int lf_thread_create(lf_thread_t* thread, void *(*lf_thread) (void *), void* arg
     tid++; 
 
     *thread = my_tid;   
+
+    k_mutex_unlock(&thread_mutex);
+
     return 0;
 }
 
