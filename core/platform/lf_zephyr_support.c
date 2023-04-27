@@ -352,35 +352,39 @@ int lf_notify_of_event() {
 
 #ifdef FEDERATED && FEDERATED_DECENTRALIZED
 #define RTI_SOCKET_LISTENER_THREAD 1
-#define FEDERATE_SOCKET_LISTENER_THREADS 2
+#define FEDERATE_SOCKET_LISTENER_THREADS NUMBER_OF_FEDERATES*2
+#define P2P_HANDLER_THREAD 1
 
 #elif FEDERATED && FEDERATED_CENTRALIZED
 #define RTI_SOCKET_LISTENER_THREAD 1
 #define FEDERATE_SOCKET_LISTENER_THREADS 0
+#define P2P_HANDLER_THREAD 0
 
 #else 
 #define RTI_SOCKET_LISTENER_THREAD 0
 #define FEDERATE_SOCKET_LISTENER_THREADS 0
+#define P2P_HANDLER_THREAD 0
 #endif
 
-#ifdef FEDERATED && _LF_CLOCK_SYNC_ON
-#define CLOCK_SYNC_THREAD 1
-#else
-#define CLOCK_SYNC_THREAD 0
-#endif
+#ifdef FEDERATED
+    #if _LF_CLOCK_SYNC_ON
+    #define CLOCK_SYNC_THREAD 1
+    #else
+    #define CLOCK_SYNC_THREAD 0
+    #endif
 
-// FIXME: Let JOINT_RTI be set somewhere
-#define JOINT_RTI 1
-#ifdef FEDERATED && JOINT_RTI
-#define RTI_THREADS 3
-#else
-#define RTI_THREADS 0
+    #if JOINT_RTI
+    #define RTI_THREADS 3
+    #else
+    #define RTI_THREADS 0
+    #endif
 #endif
 
 #define NUMBER_OF_THREADS (NUMBER_OF_WORKERS \
                            + WORKERS_NEEDED_FOR_FEDERATE \
                            + RTI_SOCKET_LISTENER_THREAD \
                            + FEDERATE_SOCKET_LISTENER_THREADS \
+                           + P2P_HANDLER_THREAD \
                            + CLOCK_SYNC_THREAD \
                            + RTI_THREADS \
                            + USER_THREADS)
