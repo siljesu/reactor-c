@@ -366,18 +366,20 @@ int lf_notify_of_event() {
 #define P2P_HANDLER_THREAD 0
 #endif
 
-#ifdef FEDERATED
-    #if _LF_CLOCK_SYNC_ON
-    #define CLOCK_SYNC_THREAD 1
-    #else
-    #define CLOCK_SYNC_THREAD 0
-    #endif
+#if defined(FEDERATED) && _LF_CLOCK_SYNC_ON
+#define CLOCK_SYNC_THREAD 1
+#else
+#define CLOCK_SYNC_THREAD 0
+#endif
 
-    #if JOINT_RTI
-    #define RTI_THREADS 3
-    #else
-    #define RTI_THREADS 0
-    #endif
+#if defined(FEDERATED) && JOINT_RTI
+#define RTI_THREADS 3
+#else
+#define RTI_THREADS 0
+#endif
+
+#ifndef WORKERS_NEEDED_FOR_FEDERATE
+#define WORKERS_NEEDED_FOR_FEDERATE 0
 #endif
 
 #define NUMBER_OF_THREADS (NUMBER_OF_WORKERS \
