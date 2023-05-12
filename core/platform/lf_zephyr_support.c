@@ -350,12 +350,12 @@ int lf_notify_of_event() {
 #define USER_THREADS 1
 #endif
 
-#ifdef FEDERATED && FEDERATED_DECENTRALIZED
+#if defined(FEDERATED) && defined(FEDERATED_DECENTRALIZED)
 #define RTI_SOCKET_LISTENER_THREAD 1
 #define FEDERATE_SOCKET_LISTENER_THREADS NUMBER_OF_FEDERATES*2
 #define P2P_HANDLER_THREAD 1
 
-#elif FEDERATED && FEDERATED_CENTRALIZED
+#elif defined(FEDERATED) && defined(FEDERATED_CENTRALIZED)
 #define RTI_SOCKET_LISTENER_THREAD 1
 #define FEDERATE_SOCKET_LISTENER_THREADS 0
 #define P2P_HANDLER_THREAD 0
@@ -366,13 +366,14 @@ int lf_notify_of_event() {
 #define P2P_HANDLER_THREAD 0
 #endif
 
-#if defined(FEDERATED) && _LF_CLOCK_SYNC_ON
+#if defined(FEDERATED) && defined(_LF_CLOCK_SYNC_ON)
 #define CLOCK_SYNC_THREAD 1
 #else
 #define CLOCK_SYNC_THREAD 0
 #endif
 
-#if defined(FEDERATED) && JOINT_RTI
+#define JOINT_RTI 1
+#if defined(FEDERATED) && defined(JOINT_RTI)
 #define RTI_THREADS 3
 #else
 #define RTI_THREADS 0
