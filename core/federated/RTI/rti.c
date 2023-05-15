@@ -47,10 +47,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #ifdef PLATFORM_ZEPHYR
-#include <zephyr/kernel.h>
-#include <zephyr/posix/sys/socket.h>
-#define SHUT_WR ZSOCK_SHUT_WR
-#define SHUT_RDWR ZSOCK_SHUT_RDWR
 #else
 #include <sys/socket.h>
 #include <sys/types.h>  // Provides select() function to read from multiple sockets.
@@ -2220,6 +2216,33 @@ int process_clock_sync_args(int argc, char* argv[]) {
     return argc;
 }
 
+
+int rti_set_args(int num_federates, string id, int port, clock_sync_stat clock_sync, 
+                    int clock_sync_period, int clock_sync_exchanges){
+    
+    printf("RTI: Federation ID: %s\n", id);
+    _RTI.federation_id = id;
+    
+    _RTI.number_of_federates = (int32_t)num_federates; // FIXME: Loses numbers on 64-bit machines
+    printf("RTI: Number of federates: %d\n", _RTI.number_of_federates);
+
+    _RTI.user_specified_port = (uint16_t)port;
+
+    _RTI.clock_sync_global_status = clock_sync;
+    if (clock_sync == 0) {
+        printf("RTI: Clock sync: off\n");
+    } else if (clock_sync == 1) {
+        printf("RTI: Clock sync: init\n");
+    } else if (clock_sync == 2) {
+        printf("RTI: Clock sync: on\n");
+    }
+    _RTI.clock_sync_period_ns = (int64_t)clock_sync_period;
+    printf("RTI: Clock sync period: %lld\n", (long long int)_RTI.clock_sync_period_ns);
+
+    _RTI.clock_sync_exchanges_per_interval = (int32_t)clock_sync_exchanges; // FIXME: Loses numbers on 64-bit machines
+    printf("RTI: Clock sync exchanges per interval: %d\n", _RTI.clock_sync_exchanges_per_interval);
+}
+
 /**
  * Process the command-line arguments. If the command line arguments are not
  * understood, then print a usage message and return 0. Otherwise, return 1.
@@ -2300,18 +2323,12 @@ int rti_process_args(int argc, char* argv[]) {
     return 1;
 }
 
-int lf_rti_main(void *args) {
+int lf_rti_main() {
 
     lf_mutex_init(&rti_mutex);
     lf_cond_init(&received_start_times);
     lf_cond_init(&sent_start_time);
 
-    struct rti_args *rti_args = (struct rti_args *)args;
-    printf("number of arguments given: %u\n", rti_args->argc);
-    if (!rti_process_args(rti_args->argc, rti_args->argv)) {
-        // Processing command-line arguments failed.
-        return -1;
-    }
     printf("Starting RTI for %d federates in federation ID %s\n", _RTI.number_of_federates, _RTI.federation_id);
     assert(_RTI.number_of_federates < UINT16_MAX);
     _RTI.federates = (federate_t*)calloc(_RTI.number_of_federates, sizeof(federate_t));

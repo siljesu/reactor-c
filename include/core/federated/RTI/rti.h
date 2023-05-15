@@ -43,7 +43,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #else
 #endif
 
-int lf_rti_main(void *args);
+int lf_rti_main();
 
 /////////////////////////////////////////////
 //// Data structures
@@ -209,10 +209,5 @@ typedef struct RTI_instance_t {
     bool authentication_enabled;
 } RTI_instance_t;
 
-// Struct for handling arguments to RTI
-struct rti_args {
-    int argc;
-    char **argv;
-};
 
 #endif // RTI_H
