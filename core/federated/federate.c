@@ -30,17 +30,16 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The main entry point is synchronize_with_other_federates().
  */
 #ifdef PLATFORM_ZEPHYR
-#include <zephyr/kernel.h>
-#include <zephyr/posix/sys/socket.h>
+#warning Federated support on Zephyr is still experimental.
 #else
-#include <arpa/inet.h>  // inet_ntop & inet_pton
-#include <netdb.h>      // Defines gethostbyname().
 #include <netinet/in.h> // Defines struct sockaddr_in
-#include <signal.h>     // Defines sigaction.
+#include <netdb.h>      // Defines gethostbyname().
+#include <arpa/inet.h>  // inet_ntop & inet_pton
 #include <sys/socket.h>
-#include <unistd.h>     // Defines read(), write(), and close()
 #include <regex.h>
 #endif
+#include <signal.h>     // Defines sigaction.
+#include <unistd.h>     // Defines read(), write(), and close()
 #include <time.h>
 #include <assert.h>
 #include <errno.h>      // Defined perror(), errno

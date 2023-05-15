@@ -30,22 +30,22 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Utility functions for clock synchronization.
  */
 
-#include <errno.h>
-#include <math.h>
-#include <string.h>
-#include <stdlib.h>
+
 #ifdef PLATFORM_ZEPHYR
-#include <zephyr/posix/sys/socket.h>
-#define MSG_WAITALL ZSOCK_MSG_WAITALL
 #else
 #include <sys/socket.h>
 #include <netinet/in.h>
 #endif
+#include <errno.h>
+#include <math.h>
+#include <string.h>
+#include <stdlib.h>
 
 #include "clock-sync.h"
 #include "net_common.h"
 #include "net_util.h"
 #include "util.h"
+#include "platform.h"
 
 /**
  * Keep a record of connection statistics

@@ -39,7 +39,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define NET_UTIL_H
 
 #ifdef PLATFORM_ZEPHYR
-#include <zephyr/kernel.h>
 #else
 #include <sys/socket.h>
 #include <regex.h>

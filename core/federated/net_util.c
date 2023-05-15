@@ -30,24 +30,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Utility functions for a federate in a federated execution.
  */
 
-#ifdef PLATFORM_ZEPHYR
-#include <zephyr/kernel.h>
-#include <zephyr/posix/sys/socket.h>
-// Wrapper for posix universal file descriptor function read/write() to 
-// socket-specific function recv/send, implemented by Zephyr's socket API
-//ssize_t read(int sock_fd, void* buf, size_t max_len){
-//    return recv(sock_fd, buf, max_len, 0);
-//}
-//ssize_t write(int sock_fd, const void* buf, size_t len){
-//    return send(sock_fd, buf, len, 0);
-//} 
-#define close(sock_fd) zsock_close(sock_fd)
-#define addrinfo zsock_addrinfo
-#define getaddrinfo(host, service, hints, res) zsock_getaddrinfo(host, service, hints, res)
-#define freeaddrinfo(ai) zsock_freeaddrinfo(ai)
-#else
+
 #include <unistd.h>     // Defines read(), write(), and close()
-#endif
 #include <string.h>     // Defines memcpy()
 #include <assert.h>
 #include <ctype.h>
