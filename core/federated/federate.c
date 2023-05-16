@@ -33,6 +33,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef FEDERATED
 #ifdef PLATFORM_ARDUINO
 #error To be implemented. No support for federation on Arduino yet.
+#elif PLATFORM_ZEPHYR
+#warning Federated support on Zephyr is still experimental.
 #else
 #include <arpa/inet.h>  // inet_ntop & inet_pton
 #include <netdb.h>      // Defines gethostbyname().
@@ -1030,33 +1032,38 @@ void connect_to_rti(const char* hostname, int port) {
     int result = -1;
     int count_retries = 0;
 
+    struct addrinfo hints;
+    struct addrinfo *res, *rp;
+
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_INET;          /* Allow IPv4 */
+    hints.ai_socktype = SOCK_STREAM;    /* Stream (TCP) socket */
+    hints.ai_protocol = IPPROTO_TCP;    /* TCP/IP protocol */
+    hints.ai_addr = NULL;
+    hints.ai_next = NULL;
+    hints.ai_flags = AI_NUMERICSERV;
     while (result < 0) {
-        // Create an IPv4 socket for TCP (not UDP) communication over IP (0).
-        _fed.socket_TCP_RTI = socket(AF_INET, SOCK_STREAM, 0);
-        if (_fed.socket_TCP_RTI < 0) {
-            lf_print_error_and_exit("Creating socket to RTI.");
+        char str[6]; // FIXME: size
+        sprintf(str,"%u",uport);
+        int server = getaddrinfo(hostname, &str, &hints, &res);
+        if (server != 0) {
+            lf_print_error_and_exit("Could not get addr info from host name.");
         }
-
-        struct hostent *server = gethostbyname(hostname);
-        if (server == NULL) {
-            lf_print_error_and_exit("ERROR, no such host for RTI: %s\n", hostname);
+        for (rp = res; rp != NULL; rp = rp->ai_next) {
+            _fed.socket_TCP_RTI = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+            if (_fed.socket_TCP_RTI < 0) {
+                lf_print("Failed to create socket. Trying next address.");
+                continue;
+            }
+            result = connect(_fed.socket_TCP_RTI, rp->ai_addr, rp->ai_addrlen);
+            if (result == 0) {
+                lf_print("Successfully connected to RTI.");
+                break;
+            }
+            close(_fed.socket_TCP_RTI); // Close failed connection?
         }
-        // Server file descriptor.
-        struct sockaddr_in server_fd;
-        // Zero out the server_fd struct.
-        bzero((char*)&server_fd, sizeof(server_fd));
+        freeaddrinfo(res);           /* No longer needed */
 
-        // Set up the server_fd fields.
-        server_fd.sin_family = AF_INET;    // IPv4
-        bcopy((char*)server->h_addr,
-             (char*)&server_fd.sin_addr.s_addr,
-             (size_t)server->h_length);
-        // Convert the port number from host byte order to network byte order.
-        server_fd.sin_port = htons(uport);
-        result = connect(
-            _fed.socket_TCP_RTI,
-            (struct sockaddr *)&server_fd,
-            sizeof(server_fd));
         // If this failed, try more ports, unless a specific port was given.
         if (result != 0
                 && !specific_port_given

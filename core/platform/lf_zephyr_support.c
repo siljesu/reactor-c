@@ -356,14 +356,56 @@ int lf_notify_of_event() {
 // FIXME: What is an appropriate thread prio?
 #define _LF_THREAD_PRIORITY 5
 
-// If NUMBER_OF_WORKERS is not specified, or set to 0, then we default to 1.
+// If NUMBER_OF_WORKERS is not specified, or specified to 0. Then we default to 1
 #if !defined(NUMBER_OF_WORKERS) || NUMBER_OF_WORKERS==0
 #undef NUMBER_OF_WORKERS
 #define NUMBER_OF_WORKERS 1
 #endif
 
-static K_THREAD_STACK_ARRAY_DEFINE(stacks, NUMBER_OF_WORKERS, _LF_STACK_SIZE);
-static struct k_thread threads[NUMBER_OF_WORKERS];
+// FIXME: Make it possible to specify
+// If USER_THREADS is not specified, then default to 1.
+#if !defined(USER_THREADS)
+#define USER_THREADS 1
+#endif
+
+#if defined(FEDERATED) && defined(FEDERATED_DECENTRALIZED)
+#define RTI_SOCKET_LISTENER_THREAD 1
+#define FEDERATE_SOCKET_LISTENER_THREADS NUMBER_OF_FEDERATES*2
+#define P2P_HANDLER_THREAD 1
+
+#elif defined(FEDERATED) && defined(FEDERATED_CENTRALIZED)
+#define RTI_SOCKET_LISTENER_THREAD 1
+#define FEDERATE_SOCKET_LISTENER_THREADS 0
+#define P2P_HANDLER_THREAD 0
+
+#else 
+#define RTI_SOCKET_LISTENER_THREAD 0
+#define FEDERATE_SOCKET_LISTENER_THREADS 0
+#define P2P_HANDLER_THREAD 0
+#endif
+
+#if defined(FEDERATED) && defined(_LF_CLOCK_SYNC_ON)
+#define CLOCK_SYNC_THREAD 1
+#else
+#define CLOCK_SYNC_THREAD 0
+#endif
+
+#ifndef WORKERS_NEEDED_FOR_FEDERATE
+#define WORKERS_NEEDED_FOR_FEDERATE 0
+#endif
+
+#define NUMBER_OF_THREADS (NUMBER_OF_WORKERS \
+                           + WORKERS_NEEDED_FOR_FEDERATE \
+                           + RTI_SOCKET_LISTENER_THREAD \
+                           + FEDERATE_SOCKET_LISTENER_THREADS \
+                           + P2P_HANDLER_THREAD \
+                           + CLOCK_SYNC_THREAD \
+                           + USER_THREADS)
+
+K_MUTEX_DEFINE(thread_mutex);
+
+static K_THREAD_STACK_ARRAY_DEFINE(stacks, NUMBER_OF_THREADS, _LF_STACK_SIZE);
+static struct k_thread threads[NUMBER_OF_THREADS];
 
 // Typedef that represents the function pointers passed by LF runtime into lf_thread_create
 typedef void *(*lf_function_t) (void *);
@@ -393,14 +435,16 @@ int lf_available_cores() {
  *  it must be removed from the API.
  */
 int lf_thread_create(lf_thread_t* thread, void *(*lf_thread) (void *), void* arguments) {
+
+    k_mutex_lock(&thread_mutex, K_FOREVER);
+
     // Use static id to map each created thread to a 
     static int tid = 0;
 
     // Make sure we dont try to create too many threads
-    if (tid > (NUMBER_OF_WORKERS-1)) {
+    if (tid > (NUMBER_OF_THREADS-1)) {
         return -1;
     }
-
 
     k_tid_t my_tid = k_thread_create(&threads[tid], &stacks[tid][0],
                                     _LF_STACK_SIZE, zephyr_worker_entry,
@@ -410,8 +454,12 @@ int lf_thread_create(lf_thread_t* thread, void *(*lf_thread) (void *), void* arg
     tid++; 
 
     *thread = my_tid;   
+
+    k_mutex_unlock(&thread_mutex);
+
     return 0;
 }
+
 
 /**
  * Make calling thread wait for termination of the thread.  The
