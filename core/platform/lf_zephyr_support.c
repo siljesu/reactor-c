@@ -351,8 +351,8 @@ int lf_notify_of_event() {
 #ifdef LF_THREADED
 //#error "Threaded support on Zephyr is not supported"
 
-// FIXME: What is an appropriate stack size?
-#define _LF_STACK_SIZE 1024
+// FIXME: What is an appropriate stack size? Must be increased for federated.
+#define _LF_STACK_SIZE 4096
 // FIXME: What is an appropriate thread prio?
 #define _LF_THREAD_PRIORITY 5
 
