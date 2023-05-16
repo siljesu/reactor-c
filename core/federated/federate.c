@@ -774,9 +774,7 @@ void connect_to_federate(uint16_t remote_federate_id) {
                 lf_print_error_and_exit("TIMEOUT obtaining IP/port for federate %d from the RTI.",
                         remote_federate_id);
             }
-            struct timespec wait_time = {0L, ADDRESS_QUERY_RETRY_INTERVAL};
-            struct timespec remaining_time;
-            if (nanosleep(&wait_time, &remaining_time) != 0) {
+            if (lf_sleep(ADDRESS_QUERY_RETRY_INTERVAL) != 0) {
                 // Sleep was interrupted.
                 continue;
             }
@@ -841,9 +839,7 @@ void connect_to_federate(uint16_t remote_federate_id) {
             lf_print_warning("Could not connect to federate %d. Will try again every " PRINTF_TIME " nanoseconds.\n",
                    remote_federate_id, ADDRESS_QUERY_RETRY_INTERVAL);
             // Wait CONNECT_RETRY_INTERVAL seconds.
-            struct timespec wait_time = {0L, ADDRESS_QUERY_RETRY_INTERVAL};
-            struct timespec remaining_time;
-            if (nanosleep(&wait_time, &remaining_time) != 0) {
+            if (lf_sleep(ADDRESS_QUERY_RETRY_INTERVAL) != 0) {
                 // Sleep was interrupted.
                 continue;
             }
@@ -1073,9 +1069,7 @@ void connect_to_rti(const char* hostname, int port) {
             lf_print("Failed to connect to RTI on port %d. Trying %d.", uport, uport + 1);
             uport++;
             // Wait PORT_KNOCKING_RETRY_INTERVAL seconds.
-            struct timespec wait_time = {0L, PORT_KNOCKING_RETRY_INTERVAL};
-            struct timespec remaining_time;
-            if (nanosleep(&wait_time, &remaining_time) != 0) {
+            if (lf_sleep(PORT_KNOCKING_RETRY_INTERVAL) != 0) {
                 // Sleep was interrupted.
                 continue;
             }
@@ -1093,9 +1087,7 @@ void connect_to_rti(const char* hostname, int port) {
             lf_print("Could not connect to RTI at %s. Will try again every %d seconds.",
                    hostname, CONNECT_RETRY_INTERVAL);
             // Wait CONNECT_RETRY_INTERVAL seconds.
-            struct timespec wait_time = {(time_t)CONNECT_RETRY_INTERVAL, 0L};
-            struct timespec remaining_time;
-            if (nanosleep(&wait_time, &remaining_time) != 0) {
+            if (lf_sleep(CONNECT_RETRY_INTERVAL) != 0) {
                 // Sleep was interrupted.
                 continue;
             }
@@ -2418,7 +2410,7 @@ void terminate_execution() {
     // possibility of deadlock. To ensure this, this
     // function should NEVER be called while holding any mutex lock.
     lf_mutex_lock(&outbound_socket_mutex);
-    for (int i=0; i < NUMBER_OF_FEDERATES; i++) {
+        for (int i=0; i < _fed.number_of_outbound_p2p_connections; i++) {
         // Close outbound connections, in case they have not closed themselves.
         // This will result in EOF being sent to the remote federate, I think.
         _lf_close_outbound_socket(i);
