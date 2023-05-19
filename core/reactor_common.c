@@ -60,8 +60,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "watchdog.h"
 
 // Code generated global variables.
-extern int _lf_watchdog_count;
-extern watchdog_t* _lf_watchdogs;
+//extern int _lf_watchdog_count;
+//extern watchdog_t* _lf_watchdogs;
 #endif
 
 // Global variable defined in tag.c:
