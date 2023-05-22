@@ -37,7 +37,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #warning Federated support on Zephyr is still experimental.
 #else
 #include <arpa/inet.h>  // inet_ntop & inet_pton
-#include <netdb.h>      // Defines gethostbyname().
+#include <netdb.h>      // Defines getaddrinfo(), freeaddrinfo() and struct addrinfo.
 #include <netinet/in.h> // Defines struct sockaddr_in
 #include <regex.h>
 #include <strings.h>    // Defines bzero().
@@ -1031,35 +1031,40 @@ void connect_to_rti(const char* hostname, int port) {
     int count_retries = 0;
 
     struct addrinfo hints;
-    struct addrinfo *res, *rp;
+    struct addrinfo *res;
 
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_INET;          /* Allow IPv4 */
-    hints.ai_socktype = SOCK_STREAM;    /* Stream (TCP) socket */
-    hints.ai_protocol = IPPROTO_TCP;    /* TCP/IP protocol */
+    hints.ai_socktype = SOCK_STREAM;    /* Stream socket */
+    hints.ai_protocol = IPPROTO_TCP;    /* TCP protocol */
     hints.ai_addr = NULL;
     hints.ai_next = NULL;
-    hints.ai_flags = AI_NUMERICSERV;
+    hints.ai_flags = AI_NUMERICSERV;    /* Allow only numeric port numbers */
+
     while (result < 0) {
-        char str[6]; // FIXME: size
+        // Convert port number to string
+        char str[6];
         sprintf(str,"%u",uport);
+
+        // Get address structures matching hostname, port and hints criteria
+        // There should only ever be one matching address structure, and
+        // we connect to that.
         int server = getaddrinfo(hostname, &str, &hints, &res);
         if (server != 0) {
-            lf_print_error_and_exit("Could not get addr info from host name.");
+            lf_print_error_and_exit("Could not get address info from host name.");
         }
-        for (rp = res; rp != NULL; rp = rp->ai_next) {
-            _fed.socket_TCP_RTI = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-            if (_fed.socket_TCP_RTI < 0) {
-                lf_print("Failed to create socket. Trying next address.");
-                continue;
-            }
-            result = connect(_fed.socket_TCP_RTI, rp->ai_addr, rp->ai_addrlen);
-            if (result == 0) {
-                lf_print("Successfully connected to RTI.");
-                break;
-            }
-            close(_fed.socket_TCP_RTI); // Close failed connection?
+
+        // Create a socket matching hints criteria
+        _fed.socket_TCP_RTI = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+        if (_fed.socket_TCP_RTI < 0) {
+            lf_print_error_and_exit("Failed to create socket to RTI.");
         }
+
+        result = connect(_fed.socket_TCP_RTI, res->ai_addr, res->ai_addrlen);
+        if (result == 0) {
+            lf_print("Successfully connected to RTI.");
+        }
+
         freeaddrinfo(res);           /* No longer needed */
 
         // If this failed, try more ports, unless a specific port was given.
