@@ -1087,7 +1087,7 @@ void connect_to_rti(const char* hostname, int port) {
                                      CONNECT_NUM_RETRIES);
             }
             lf_print("Could not connect to RTI at %s. Will try again every %d seconds.",
-                   hostname, (CONNECT_RETRY_INTERVAL)/1000000000LL);
+                   hostname, CONNECT_RETRY_INTERVAL / BILLION);
             // Wait CONNECT_RETRY_INTERVAL nanoseconds.
             if (lf_sleep(CONNECT_RETRY_INTERVAL) != 0) {
                 // Sleep was interrupted.
