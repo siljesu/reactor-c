@@ -42,6 +42,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <regex.h>
 #include <strings.h>    // Defines bzero().
 #include <sys/socket.h>
+#include <time.h>
 #endif
 
 #include <assert.h>
@@ -774,6 +775,7 @@ void connect_to_federate(uint16_t remote_federate_id) {
                 lf_print_error_and_exit("TIMEOUT obtaining IP/port for federate %d from the RTI.",
                         remote_federate_id);
             }
+            // Wait ADDRESS_QUERY_RETRY_INTERVAL nanoseconds.
             if (lf_sleep(ADDRESS_QUERY_RETRY_INTERVAL) != 0) {
                 // Sleep was interrupted.
                 continue;
@@ -838,7 +840,7 @@ void connect_to_federate(uint16_t remote_federate_id) {
             }
             lf_print_warning("Could not connect to federate %d. Will try again every " PRINTF_TIME " nanoseconds.\n",
                    remote_federate_id, ADDRESS_QUERY_RETRY_INTERVAL);
-            // Wait CONNECT_RETRY_INTERVAL seconds.
+            // Wait ADDRESS_QUERY_RETRY_INTERVAL nanoseconds.
             if (lf_sleep(ADDRESS_QUERY_RETRY_INTERVAL) != 0) {
                 // Sleep was interrupted.
                 continue;
@@ -1085,8 +1087,8 @@ void connect_to_rti(const char* hostname, int port) {
                                      CONNECT_NUM_RETRIES);
             }
             lf_print("Could not connect to RTI at %s. Will try again every %d seconds.",
-                   hostname, CONNECT_RETRY_INTERVAL);
-            // Wait CONNECT_RETRY_INTERVAL seconds.
+                   hostname, (CONNECT_RETRY_INTERVAL)/1000000000LL);
+            // Wait CONNECT_RETRY_INTERVAL nanoseconds.
             if (lf_sleep(CONNECT_RETRY_INTERVAL) != 0) {
                 // Sleep was interrupted.
                 continue;
