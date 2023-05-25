@@ -49,7 +49,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Keep track of overflows to keep clocks monotonic
 static int64_t _lf_timer_epoch_duration_nsec;
 static int64_t _lf_timer_epoch_duration_usec;
-static uint32_t _lf_timer_max_tics;
+static uint32_t _lf_timer_max_ticks;
 static volatile int64_t _lf_timer_last_epoch_nsec = 0;
 static uint32_t _lf_timer_freq;
 
@@ -365,7 +365,7 @@ int lf_notify_of_event() {
 
 #if defined(FEDERATED) && defined(FEDERATED_DECENTRALIZED)
 #define RTI_SOCKET_LISTENER_THREAD 1
-#define FEDERATE_SOCKET_LISTENER_THREADS NUMBER_OF_FEDERATES*2
+#define FEDERATE_SOCKET_LISTENER_THREADS NUMBER_OF_FEDERATES
 #define P2P_HANDLER_THREAD 1
 
 #elif defined(FEDERATED) && defined(FEDERATED_CENTRALIZED)
@@ -385,6 +385,13 @@ int lf_notify_of_event() {
 #define CLOCK_SYNC_THREAD 0
 #endif
 
+#define JOINT_RTI
+#if defined(FEDERATED) && defined(JOINT_RTI)
+#define RTI_THREADS (3 + NUMBER_OF_FEDERATES)
+#else
+#define RTI_THREADS 0
+#endif
+
 #ifndef WORKERS_NEEDED_FOR_FEDERATE
 #define WORKERS_NEEDED_FOR_FEDERATE 0
 #endif
@@ -395,6 +402,7 @@ int lf_notify_of_event() {
                            + FEDERATE_SOCKET_LISTENER_THREADS \
                            + P2P_HANDLER_THREAD \
                            + CLOCK_SYNC_THREAD \
+                           + RTI_THREADS \
                            + USER_THREADS)
 
 K_MUTEX_DEFINE(thread_mutex);
