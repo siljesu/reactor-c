@@ -56,27 +56,8 @@ lf_mutex_t rti_mutex;
 lf_cond_t received_start_times;
 lf_cond_t sent_start_time;
 
-/**
- * Enter a critical section where logical time and the event queue are guaranteed
- * to not change unless they are changed within the critical section.
- * this can be implemented by disabling interrupts.
- * Users of this function must ensure that lf_init_critical_sections() is
- * called first and that lf_critical_section_exit() is called later.
- * @return 0 on success, platform-specific error number otherwise.
- */
-extern int lf_critical_section_enter() {
-    return lf_mutex_lock(&rti_mutex);
-}
 
-/**
- * Exit the critical section entered with lf_lock_time().
- * @return 0 on success, platform-specific error number otherwise.
- */
-extern int lf_critical_section_exit() {
-    return lf_mutex_unlock(&rti_mutex);
-}
-
-int create_server(int32_t specified_port, uint16_t port, socket_type_t socket_type) {
+int rti_create_server(int32_t specified_port, uint16_t port, socket_type_t socket_type) {
     // Timeout time for the communications of the server
     struct timeval timeout_time = {.tv_sec = TCP_TIMEOUT_TIME / BILLION, .tv_usec = (TCP_TIMEOUT_TIME % BILLION) / 1000};
     // Create an IPv4 socket for TCP (not UDP) communication over IP (0).
@@ -493,7 +474,7 @@ void update_federate_next_event_tag_locked(uint16_t federate_id, tag_t next_even
     free(visited);
 }
 
-void handle_port_absent_message(federate_t* sending_federate, unsigned char* buffer) {
+void rti_handle_port_absent_message(federate_t* sending_federate, unsigned char* buffer) {
     size_t message_size = sizeof(uint16_t) + sizeof(uint16_t) + sizeof(int64_t) + sizeof(uint32_t);
 
     read_from_socket_errexit(sending_federate->socket, message_size, &(buffer[1]),
@@ -815,7 +796,7 @@ void mark_federate_requesting_stop(federate_t* fed) {
     }
 }
 
-void handle_stop_request_message(federate_t* fed) {
+void rti_handle_stop_request_message(federate_t* fed) {
     LF_PRINT_DEBUG("RTI handling stop_request from federate %d.", fed->id);
 
     size_t bytes_to_read = MSG_TYPE_STOP_REQUEST_LENGTH - 1;
@@ -1274,7 +1255,7 @@ void* federate_thread_TCP(void* fed) {
                 handle_logical_tag_complete(my_fed);
                 break;
             case MSG_TYPE_STOP_REQUEST:
-                handle_stop_request_message(my_fed); // FIXME: Reviewed until here.
+                rti_handle_stop_request_message(my_fed); // FIXME: Reviewed until here.
                                                      // Need to also look at
                                                      // send_advance_grant_if_safe()
                                                      // and send_downstream_advance_grants_if_safe()
@@ -1283,7 +1264,7 @@ void* federate_thread_TCP(void* fed) {
                 handle_stop_request_reply(my_fed);
                 break;
             case MSG_TYPE_PORT_ABSENT:
-                handle_port_absent_message(my_fed, buffer);
+                rti_handle_port_absent_message(my_fed, buffer);
                 break;
             default:
                 lf_print_error("RTI received from federate %d an unrecognized TCP message type: %u.", my_fed->id, buffer[0]);
@@ -1750,14 +1731,17 @@ int32_t start_rti_server(uint16_t port) {
         // Use the default starting port.
         port = STARTING_PORT;
     }
+    #ifdef PLATFORM_ZEPHYR
+    #else
     lf_initialize_clock();
+    #endif
     // Create the TCP socket server
-    _RTI.socket_descriptor_TCP = create_server(specified_port, port, TCP);
+    _RTI.socket_descriptor_TCP = rti_create_server(specified_port, port, TCP);
     lf_print("RTI: Listening for federates.");
     // Create the UDP socket server
     // Try to get the _RTI.final_port_TCP + 1 port
     if (_RTI.clock_sync_global_status >= clock_sync_on) {
-        _RTI.socket_descriptor_UDP = create_server(specified_port, _RTI.final_port_TCP + 1, UDP);
+        _RTI.socket_descriptor_UDP = rti_create_server(specified_port, _RTI.final_port_TCP + 1, UDP);
     }
     return _RTI.socket_descriptor_TCP;
 }
@@ -1844,7 +1828,7 @@ void wait_for_federates(int socket_descriptor) {
     }
 }
 
-void usage(int argc, const char* argv[]) {
+void rti_usage(int argc, const char* argv[]) {
     printf("\nCommand-line arguments: \n\n");
     printf("  -i, --id <n>\n");
     printf("   The ID of the federation that this RTI will control.\n\n");
@@ -1886,12 +1870,12 @@ int process_clock_sync_args(int argc, const char* argv[]) {
         } else if (strcmp(argv[i], "period") == 0) {
             if (_RTI.clock_sync_global_status != clock_sync_on) {
                 fprintf(stderr, "Error: clock sync period can only be set if --clock-sync is set to on.\n");
-                usage(argc, argv);
+                rti_usage(argc, argv);
                 i++;
                 continue; // Try to parse the rest of the arguments as clock sync args.
             } else if (argc < i + 2) {
                 fprintf(stderr, "Error: clock sync period needs a time (in nanoseconds) argument.\n");
-                usage(argc, argv);
+                rti_usage(argc, argv);
                 continue;
             }
             i++;
@@ -1906,11 +1890,11 @@ int process_clock_sync_args(int argc, const char* argv[]) {
             if (_RTI.clock_sync_global_status != clock_sync_on && _RTI.clock_sync_global_status != clock_sync_init) {
                 fprintf(stderr, "Error: clock sync exchanges-per-interval can only be set if\n");
                 fprintf(stderr, "--clock-sync is set to on or init.\n");
-                usage(argc, argv);
+                rti_usage(argc, argv);
                 continue; // Try to parse the rest of the arguments as clock sync args.
             } else if (argc < i + 2) {
                 fprintf(stderr, "Error: clock sync exchanges-per-interval needs an integer argument.\n");
-                usage(argc, argv);
+                rti_usage(argc, argv);
                 continue; // Try to parse the rest of the arguments as clock sync args.
             }
             i++;
@@ -1934,12 +1918,12 @@ int process_clock_sync_args(int argc, const char* argv[]) {
     return argc;
 }
 
-int process_args(int argc, const char* argv[]) {
+int rti_process_args(int argc, const char* argv[]) {
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-i") == 0 || strcmp(argv[i], "--id") == 0) {
             if (argc < i + 2) {
                 fprintf(stderr, "Error: --id needs a string argument.\n");
-                usage(argc, argv);
+                rti_usage(argc, argv);
                 return 0;
             }
             i++;
@@ -1948,14 +1932,14 @@ int process_args(int argc, const char* argv[]) {
         } else if (strcmp(argv[i], "-n") == 0 || strcmp(argv[i], "--number_of_federates") == 0) {
             if (argc < i + 2) {
                 fprintf(stderr, "Error: --number_of_federates needs an integer argument.\n");
-                usage(argc, argv);
+                rti_usage(argc, argv);
                 return 0;
             }
             i++;
             long num_federates = strtol(argv[i], NULL, 10);
             if (num_federates == 0L || num_federates == LONG_MAX ||  num_federates == LONG_MIN) {
                 fprintf(stderr, "Error: --number_of_federates needs a valid positive integer argument.\n");
-                usage(argc, argv);
+                rti_usage(argc, argv);
                 return 0;
             }
             _RTI.number_of_federates = (int32_t)num_federates; // FIXME: Loses numbers on 64-bit machines
@@ -1967,7 +1951,7 @@ int process_args(int argc, const char* argv[]) {
                     "Error: --port needs a short unsigned integer argument ( > 0 and < %d).\n",
                     UINT16_MAX
                 );
-                usage(argc, argv);
+                rti_usage(argc, argv);
                 return 0;
             }
             i++;
@@ -1978,14 +1962,14 @@ int process_args(int argc, const char* argv[]) {
                     "Error: --port needs a short unsigned integer argument ( > 0 and < %d).\n",
                     UINT16_MAX
                 );
-                usage(argc, argv);
+                rti_usage(argc, argv);
                 return 0;
             }
             _RTI.user_specified_port = (uint16_t)RTI_port;
         } else if (strcmp(argv[i], "-c") == 0 || strcmp(argv[i], "--clock_sync") == 0) {
             if (argc < i + 2) {
                fprintf(stderr, "Error: --clock-sync needs off|init|on.\n");
-               usage(argc, argv);
+               rti_usage(argc, argv);
                return 0;
            }
            i++;
@@ -1999,14 +1983,59 @@ int process_args(int argc, const char* argv[]) {
             continue;
         }  else {
            fprintf(stderr, "Error: Unrecognized command-line argument: %s\n", argv[i]);
-           usage(argc, argv);
+           rti_usage(argc, argv);
            return 0;
        }
     }
     if (_RTI.number_of_federates == 0) {
         fprintf(stderr, "Error: --number_of_federates needs a valid positive integer argument.\n");
-        usage(argc, argv);
+        rti_usage(argc, argv);
         return 0;
     }
     return 1;
+}
+
+
+int rti_set_args(int num_federates, string id, int port, clock_sync_stat clock_sync, 
+                    int clock_sync_period, int clock_sync_exchanges){
+    
+    printf("RTI: Federation ID: %s\n", id);
+    _RTI.federation_id = id;
+    
+    _RTI.number_of_federates = (int32_t)num_federates; // FIXME: Loses numbers on 64-bit machines
+    printf("RTI: Number of federates: %d\n", _RTI.number_of_federates);
+
+    _RTI.user_specified_port = (uint16_t)port;
+
+    _RTI.clock_sync_global_status = clock_sync;
+    if (clock_sync == 0) {
+        printf("RTI: Clock sync: off\n");
+    } else if (clock_sync == 1) {
+        printf("RTI: Clock sync: init\n");
+    } else if (clock_sync == 2) {
+        printf("RTI: Clock sync: on\n");
+    }
+    _RTI.clock_sync_period_ns = (int64_t)clock_sync_period;
+    printf("RTI: Clock sync period: %lld\n", (long long int)_RTI.clock_sync_period_ns);
+
+    _RTI.clock_sync_exchanges_per_interval = (int32_t)clock_sync_exchanges; // FIXME: Loses numbers on 64-bit machines
+    printf("RTI: Clock sync exchanges per interval: %d\n", _RTI.clock_sync_exchanges_per_interval);
+}
+
+int lf_rti_main() {
+
+    lf_mutex_init(&rti_mutex);
+    lf_cond_init(&received_start_times, &rti_mutex);
+    lf_cond_init(&sent_start_time, &rti_mutex);
+
+    printf("Starting RTI for %d federates in federation ID %s\n", _RTI.number_of_federates, _RTI.federation_id);
+    assert(_RTI.number_of_federates < UINT16_MAX);
+    _RTI.federates = (federate_t*)calloc(_RTI.number_of_federates, sizeof(federate_t));
+    for (uint16_t i = 0; i < _RTI.number_of_federates; i++) {
+        initialize_federate(i);
+    }
+    int socket_descriptor = start_rti_server(_RTI.user_specified_port);
+    wait_for_federates(socket_descriptor);
+    printf("RTI is exiting.\n");
+    return 0;
 }

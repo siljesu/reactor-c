@@ -11,18 +11,22 @@
 #ifndef RTI_LIB_H
 #define RTI_LIB_H
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>      // Defines perror(), errno
+#ifdef PLATFORM_ZEPHYR
+#else
+
 #include <sys/socket.h>
 #include <sys/types.h>  // Provides select() function to read from multiple sockets.
 #include <netinet/in.h> // Defines struct sockaddr_in
 #include <arpa/inet.h>  // inet_ntop & inet_pton
-#include <unistd.h>     // Defines read(), write(), and close()
 #include <netdb.h>      // Defines gethostbyname().
+#include <sys/wait.h>   // Defines wait() for process to change state.
+#endif
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>      // Defines perror(), errno
+#include <unistd.h>     // Defines read(), write(), and close()
 #include <strings.h>    // Defines bzero().
 #include <assert.h>
-#include <sys/wait.h>   // Defines wait() for process to change state.
 
 #include "platform.h"   // Platform-specific types and functions
 #include "util.h" // Defines print functions (e.g., lf_print).
@@ -215,22 +219,6 @@ extern lf_cond_t received_start_times;
 extern lf_cond_t sent_start_time;
 
 /**
- * Enter a critical section where logical time and the event queue are guaranteed
- * to not change unless they are changed within the critical section.
- * this can be implemented by disabling interrupts.
- * Users of this function must ensure that lf_init_critical_sections() is
- * called first and that lf_critical_section_exit() is called later.
- * @return 0 on success, platform-specific error number otherwise.
- */
-extern int lf_critical_section_enter();
-
-/**
- * Exit the critical section entered with lf_lock_time().
- * @return 0 on success, platform-specific error number otherwise.
- */
-extern int lf_critical_section_exit();
-
-/**
  * Create a server and enable listening for socket connections.
  *
  * @note This function is similar to create_server(...) in
@@ -241,7 +229,7 @@ extern int lf_critical_section_exit();
  * @param socket_type The type of the socket for the server (TCP or UDP).
  * @return The socket descriptor on which to accept connections.
  */
-int create_server(int32_t specified_port, uint16_t port, socket_type_t socket_type);
+int rti_create_server(int32_t specified_port, uint16_t port, socket_type_t socket_type);
 
 /**
  * Send a tag advance grant (TAG) message to the specified federate.
@@ -360,7 +348,7 @@ void update_federate_next_event_tag_locked(uint16_t federate_id, tag_t next_even
  *
  * This function assumes the caller does not hold the mutex.
  */
-void handle_port_absent_message(federate_t* sending_federate, unsigned char* buffer);
+void rti_handle_port_absent_message(federate_t* sending_federate, unsigned char* buffer);
 
 /**
  * Handle a timed message being received from a federate by the RTI to relay to another federate.
@@ -422,7 +410,7 @@ void mark_federate_requesting_stop(federate_t* fed);
  *
  * @param fed The federate sending a MSG_TYPE_STOP_REQUEST message.
  */
-void handle_stop_request_message(federate_t* fed);
+void rti_handle_stop_request_message(federate_t* fed);
 
 /**
  * Handle a MSG_TYPE_STOP_REQUEST_REPLY message.
@@ -635,7 +623,7 @@ void wait_for_federates(int socket_descriptor);
 /**
  * Print a usage message.
  */
-void usage(int argc, const char* argv[]);
+void rti_usage(int argc, const char* argv[]);
 
 /**
  * Process command-line arguments related to clock synchronization. Will return
@@ -653,8 +641,17 @@ int process_clock_sync_args(int argc, const char* argv[]);
  * understood, then print a usage message and return 0. Otherwise, return 1.
  * @return 1 if the arguments processed successfully, 0 otherwise.
  */
-int process_args(int argc, const char* argv[]);
+int rti_process_args(int argc, const char* argv[]);
 
+/**
+ * Set RTI options when running RTI with a federate
+*/
+int rti_set_args(int num_federates, string id, int port, clock_sync_stat clock_sync, 
+                    int clock_sync_period, int clock_sync_exchanges);
 
+/**
+ * RTI main function modified for running together with a federate 
+ */
+int lf_rti_main();
 
 #endif // RTI_LIB_H
