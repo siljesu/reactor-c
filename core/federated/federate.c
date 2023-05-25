@@ -33,13 +33,16 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef FEDERATED
 #ifdef PLATFORM_ARDUINO
 #error To be implemented. No support for federation on Arduino yet.
+#elif PLATFORM_ZEPHYR
+#warning Federated support on Zephyr is still experimental.
 #else
 #include <arpa/inet.h>  // inet_ntop & inet_pton
-#include <netdb.h>      // Defines gethostbyname().
+#include <netdb.h>      // Defines getaddrinfo(), freeaddrinfo() and struct addrinfo.
 #include <netinet/in.h> // Defines struct sockaddr_in
 #include <regex.h>
 #include <strings.h>    // Defines bzero().
 #include <sys/socket.h>
+#include <time.h>
 #endif
 
 #include <assert.h>
@@ -772,9 +775,8 @@ void connect_to_federate(uint16_t remote_federate_id) {
                 lf_print_error_and_exit("TIMEOUT obtaining IP/port for federate %d from the RTI.",
                         remote_federate_id);
             }
-            struct timespec wait_time = {0L, ADDRESS_QUERY_RETRY_INTERVAL};
-            struct timespec remaining_time;
-            if (nanosleep(&wait_time, &remaining_time) != 0) {
+            // Wait ADDRESS_QUERY_RETRY_INTERVAL nanoseconds.
+            if (lf_sleep(ADDRESS_QUERY_RETRY_INTERVAL) != 0) {
                 // Sleep was interrupted.
                 continue;
             }
@@ -838,10 +840,8 @@ void connect_to_federate(uint16_t remote_federate_id) {
             }
             lf_print_warning("Could not connect to federate %d. Will try again every " PRINTF_TIME " nanoseconds.\n",
                    remote_federate_id, ADDRESS_QUERY_RETRY_INTERVAL);
-            // Wait CONNECT_RETRY_INTERVAL seconds.
-            struct timespec wait_time = {0L, ADDRESS_QUERY_RETRY_INTERVAL};
-            struct timespec remaining_time;
-            if (nanosleep(&wait_time, &remaining_time) != 0) {
+            // Wait ADDRESS_QUERY_RETRY_INTERVAL nanoseconds.
+            if (lf_sleep(ADDRESS_QUERY_RETRY_INTERVAL) != 0) {
                 // Sleep was interrupted.
                 continue;
             }
@@ -1030,33 +1030,43 @@ void connect_to_rti(const char* hostname, int port) {
     int result = -1;
     int count_retries = 0;
 
+    struct addrinfo hints;
+    struct addrinfo *res;
+
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_INET;          /* Allow IPv4 */
+    hints.ai_socktype = SOCK_STREAM;    /* Stream socket */
+    hints.ai_protocol = IPPROTO_TCP;    /* TCP protocol */
+    hints.ai_addr = NULL;
+    hints.ai_next = NULL;
+    hints.ai_flags = AI_NUMERICSERV;    /* Allow only numeric port numbers */
+
     while (result < 0) {
-        // Create an IPv4 socket for TCP (not UDP) communication over IP (0).
-        _fed.socket_TCP_RTI = socket(AF_INET, SOCK_STREAM, 0);
+        // Convert port number to string
+        char str[6];
+        sprintf(str,"%u",uport);
+
+        // Get address structure matching hostname and hints criteria, and
+        // set port to the port number provided in str. There should only 
+        // ever be one matching address structure, and we connect to that.
+        int server = getaddrinfo(hostname, &str, &hints, &res);
+        if (server != 0) {
+            lf_print_error_and_exit("No host for RTI matching given hostname: %s", hostname);
+        }
+
+        // Create a socket matching hints criteria
+        _fed.socket_TCP_RTI = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
         if (_fed.socket_TCP_RTI < 0) {
-            lf_print_error_and_exit("Creating socket to RTI.");
+            lf_print_error_and_exit("Failed to create socket to RTI.");
         }
 
-        struct hostent *server = gethostbyname(hostname);
-        if (server == NULL) {
-            lf_print_error_and_exit("ERROR, no such host for RTI: %s\n", hostname);
+        result = connect(_fed.socket_TCP_RTI, res->ai_addr, res->ai_addrlen);
+        if (result == 0) {
+            lf_print("Successfully connected to RTI.");
         }
-        // Server file descriptor.
-        struct sockaddr_in server_fd;
-        // Zero out the server_fd struct.
-        bzero((char*)&server_fd, sizeof(server_fd));
 
-        // Set up the server_fd fields.
-        server_fd.sin_family = AF_INET;    // IPv4
-        bcopy((char*)server->h_addr,
-             (char*)&server_fd.sin_addr.s_addr,
-             (size_t)server->h_length);
-        // Convert the port number from host byte order to network byte order.
-        server_fd.sin_port = htons(uport);
-        result = connect(
-            _fed.socket_TCP_RTI,
-            (struct sockaddr *)&server_fd,
-            sizeof(server_fd));
+        freeaddrinfo(res);           /* No longer needed */
+
         // If this failed, try more ports, unless a specific port was given.
         if (result != 0
                 && !specific_port_given
@@ -1066,9 +1076,7 @@ void connect_to_rti(const char* hostname, int port) {
             lf_print("Failed to connect to RTI on port %d. Trying %d.", uport, uport + 1);
             uport++;
             // Wait PORT_KNOCKING_RETRY_INTERVAL seconds.
-            struct timespec wait_time = {0L, PORT_KNOCKING_RETRY_INTERVAL};
-            struct timespec remaining_time;
-            if (nanosleep(&wait_time, &remaining_time) != 0) {
+            if (lf_sleep(PORT_KNOCKING_RETRY_INTERVAL) != 0) {
                 // Sleep was interrupted.
                 continue;
             }
@@ -1084,11 +1092,9 @@ void connect_to_rti(const char* hostname, int port) {
                                      CONNECT_NUM_RETRIES);
             }
             lf_print("Could not connect to RTI at %s. Will try again every %d seconds.",
-                   hostname, CONNECT_RETRY_INTERVAL);
-            // Wait CONNECT_RETRY_INTERVAL seconds.
-            struct timespec wait_time = {(time_t)CONNECT_RETRY_INTERVAL, 0L};
-            struct timespec remaining_time;
-            if (nanosleep(&wait_time, &remaining_time) != 0) {
+                   hostname, CONNECT_RETRY_INTERVAL / BILLION);
+            // Wait CONNECT_RETRY_INTERVAL nanoseconds.
+            if (lf_sleep(CONNECT_RETRY_INTERVAL) != 0) {
                 // Sleep was interrupted.
                 continue;
             }
@@ -2411,7 +2417,7 @@ void terminate_execution() {
     // possibility of deadlock. To ensure this, this
     // function should NEVER be called while holding any mutex lock.
     lf_mutex_lock(&outbound_socket_mutex);
-    for (int i=0; i < NUMBER_OF_FEDERATES; i++) {
+        for (int i=0; i < _fed.number_of_outbound_p2p_connections; i++) {
         // Close outbound connections, in case they have not closed themselves.
         // This will result in EOF being sent to the remote federate, I think.
         _lf_close_outbound_socket(i);

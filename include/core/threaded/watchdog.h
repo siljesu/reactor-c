@@ -37,6 +37,9 @@ struct watchdog_t {
     watchdog_function_t watchdog_function;  // The function/handler for the watchdog.
 };
 
+extern int _lf_watchdog_count;
+extern watchdog_t* _lf_watchdogs;
+
 /** 
  * @brief Start or restart the watchdog timer.
  * This function sets the expiration time of the watchdog to the current logical time
