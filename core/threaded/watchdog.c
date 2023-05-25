@@ -10,8 +10,8 @@
 #include <assert.h>
 #include "watchdog.h"
 
-int _lf_watchdog_count;
-watchdog_t* _lf_watchdogs;
+extern int _lf_watchdog_count;
+extern watchdog_t* _lf_watchdogs;
 
 /**
  * @brief Initialize watchdog mutexes.
