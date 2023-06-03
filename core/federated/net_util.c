@@ -641,7 +641,6 @@ bool validate_user(const char* user) {
     return match_regex(user, username_regex);
 }
 
-#ifndef PLATFORM_ZEPHYR
 /**
  * Extract one match group from the rti_addr regex .
  * @return true if SUCCESS, else false.
@@ -675,13 +674,11 @@ bool extract_match_groups(const char* rti_addr, char** rti_addr_strs, bool** rti
     }
     return true;
 }
-#endif
 
 /**
  * Extract the host, port and user from rti_addr.
  */
 void extract_rti_addr_info(const char* rti_addr, rti_addr_info_t* rti_addr_info) {
-    #ifndef PLATFORM_ZEPHYR
     const char* regex_str = "(([a-zA-Z0-9_-]{1,254})@)?([a-zA-Z0-9.]{1,255})(:([0-9]{1,5}))?";
     size_t max_groups = 6;
     // The group indices of each field of interest in the regex.
@@ -717,6 +714,5 @@ void extract_rti_addr_info(const char* rti_addr, rti_addr_info_t* rti_addr_info)
         }
     }
     regfree(&regex_compiled);
-    #endif
 }
 #endif
